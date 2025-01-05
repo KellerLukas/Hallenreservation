@@ -40,5 +40,5 @@ def get_o365_credentials_from_env() -> Tuple[str, str]:
     ), get_credentials_from_env_var(O365_SECRET_ENV_VAR)
 
 
-def get_credentials_from_env_var(self, env_var_key: str):
+def get_credentials_from_env_var(env_var_key: str):
     return os.getenv(env_var_key)
