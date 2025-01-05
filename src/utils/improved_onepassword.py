@@ -6,7 +6,11 @@ from typing import Optional
 
 class ImprovedOnePassword(OnePassword):
     @staticmethod
-    def get_item(uuid: str | bytes, fields: str | bytes | list | None = None, vault_uuid: Optional[str]=None):
+    def get_item(
+        uuid: str | bytes,
+        fields: str | bytes | list | None = None,
+        vault_uuid: Optional[str] = None,
+    ):
         """
         Helper function to get a certain field, you can find the UUID you need using list_items
 
@@ -17,9 +21,16 @@ class ImprovedOnePassword(OnePassword):
         :return: Dictionary of the item with requested fields
         """
         if isinstance(fields, list):
-            item_list = json.loads(read_bash_return(
-                "op item get {} --format=json --fields label={}{}".format(uuid, ",label=".join(fields), f" --vault {vault_uuid}" if vault_uuid else ""),
-                single=False))
+            item_list = json.loads(
+                read_bash_return(
+                    "op item get {} --format=json --fields label={}{}".format(
+                        uuid,
+                        ",label=".join(fields),
+                        f" --vault {vault_uuid}" if vault_uuid else "",
+                    ),
+                    single=False,
+                )
+            )
             item = {}
             if isinstance(item_list, dict):
                 item[fields[0]] = item_list["value"]
@@ -29,8 +40,19 @@ class ImprovedOnePassword(OnePassword):
         elif isinstance(fields, str):
             item = {
                 fields: read_bash_return(
-                    "op item get {} --fields label={}{}".format(uuid, fields, f" --vault {vault_uuid}" if vault_uuid else ""), single=False).rstrip('\n')
+                    "op item get {} --fields label={}{}".format(
+                        uuid, fields, f" --vault {vault_uuid}" if vault_uuid else ""
+                    ),
+                    single=False,
+                ).rstrip("\n")
             }
         else:
-            item = json.loads(read_bash_return("op item get {} --format=json{}".format(uuid, f" --vault {vault_uuid}" if vault_uuid else ""), single=False))
+            item = json.loads(
+                read_bash_return(
+                    "op item get {} --format=json{}".format(
+                        uuid, f" --vault {vault_uuid}" if vault_uuid else ""
+                    ),
+                    single=False,
+                )
+            )
         return item

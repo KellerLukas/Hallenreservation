@@ -5,7 +5,7 @@ credentials = get_credentials()
 account = FixedAccount(credentials)
 
 redirect_uri = "https://localhost:5000"
-scopes = ['basic', 'message_all_shared', 'Sites.ReadWrite.All', 'Files.ReadWrite.All']
+scopes = ["basic", "message_all_shared", "Sites.ReadWrite.All", "Files.ReadWrite.All"]
 kwargs = {"redirect_uri": redirect_uri}
 
 
@@ -14,6 +14,6 @@ if not account.is_authenticated:
     print(consent_url)
 else:
     print("Already Authenticated!")
-    
-# To reset:  
-#account.con.token_backend.delete_token()
+
+# To reset:
+# account.con.token_backend.delete_token()
