@@ -1,6 +1,5 @@
 from O365 import Account
 from typing import Optional
-from O365.utils import ME_RESOURCE, consent_input_token
 
 class FixedAccount(Account):
     def get_consent_url(self, *, scopes: Optional[list] = None, **kwargs) -> str:

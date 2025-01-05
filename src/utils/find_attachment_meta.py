@@ -5,9 +5,9 @@ from typing import Optional
 
 from utils.find_attachment_meta_prompt import prompt_template as attachment_prompt_tmeplate
 from utils.find_attachment_meta_prompt import question_template as attachment_question_template
-from src.utils.improved_onepassword import ImprovedOnePassword
-from src.utils.config import OP_VAULT_UUID, OPEN_AI_API_KEY_OP_UUID
 from src.utils.errors import ClassificationError
+from src.utils.credentials import get_credentials_from_env_var
+from src.utils.config import OPEN_AI_API_KEY_ENV_VAR
 
 
 class AttachmentMeta(BaseModel):
@@ -18,8 +18,6 @@ class AttachmentMeta(BaseModel):
   
 class FindAttachmentMeta:
   def __init__(self, message_body:str, message_subject:str) -> None:
-    self.op = ImprovedOnePassword()
-    self.api_key_uuid = OPEN_AI_API_KEY_OP_UUID
     self.client = OpenAI(api_key=self.__get_key())
     self.message_body = message_body
     self.message_subject = message_subject
@@ -55,8 +53,7 @@ class FindAttachmentMeta:
     return prompt
     
   def __get_key(self):
-    item = self.op.get_item(uuid=self.api_key_uuid, vault_uuid=OP_VAULT_UUID, fields=['credential'])
-    return item['credential']
+    return get_credentials_from_env_var(OPEN_AI_API_KEY_ENV_VAR)
       
 def is_none(value):
   if value is None:

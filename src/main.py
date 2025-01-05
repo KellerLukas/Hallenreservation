@@ -1,13 +1,11 @@
 import logging
-from src.utils.credentials import get_credentials, setup_env_var_token
+from src.utils.credentials import get_o365_credentials_from_env
 from src.utils.fixed_o365_account import FixedAccount
 from src.utils.processor import EmailProcessor
 from src.utils.errors import NotAuthenticatedError
 from src.utils.config import MONITORED_EMAIL_ADDRESS
 
-setup_env_var_token()
-
-credentials = get_credentials()
+credentials = get_o365_credentials_from_env()
 account = FixedAccount(credentials)
     
 if not account.is_authenticated:

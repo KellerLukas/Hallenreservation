@@ -1,0 +1,11 @@
+SERVICE_ACCOUNT_TOKEN_OP_UUID = "nfhphlspwvqbqqjlvif6rlvpfm"
+OP_VAULT_UUID = "6ulhpapub6rncfb4i336x3b52m"
+OPEN_AI_API_KEY_OP_UUID = "j4btlveu72czo2wagr6nqakjsm"
+O365_CREDS_OP_UUID = "6skrsdmkqodwguguvhkcotkc2i"
+SHAREPOINT_SITE_ID = "a63b073b-90a4-4055-b8d3-48f8924754ce"
+SHAREPOINT_FOLDER_PATH = "Events/Hallenreservationen"
+MONITORED_EMAIL_ADDRESS = "hallenreservation_upload@tvwuerenlos.ch"
+
+O365_CLIENT_ID_ENV_VAR = "O365_CLIENT_ID"
+O365_SECRET_ENV_VAR = "O365_SECRET_KEY"
+OPEN_AI_API_KEY_ENV_VAR = "OPENAI_API_KEY"
