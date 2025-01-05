@@ -26,5 +26,5 @@ for message in messages:
     processor = EmailProcessor(message=message, account=account)
     processor.process()
     message.mark_as_read()
-    
+
 account.connection.refresh_token()
