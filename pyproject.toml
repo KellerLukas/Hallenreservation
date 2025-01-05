@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "qr_bill"
+version = "0.0.1"
+description = "Create qr bills"
+package-mode = false
+authors = []
+
+# Requirements
+[tool.poetry.dependencies]
+python = "^3.12"
+1password = "*"
+pydantic = "^2.10.4"
+openai = "^1.58.1"
+watchdog = "^6.0.0"
+ruff = "^0.8.6"
+o365 = "^2.0.38"
+pymupdf = "^1.25.1"
+
+[tool.poetry.group.test.dependencies]
+pytest = "*"
+jupyter = "*"
+
+[tool.mypy]
+files = "src, tests"
+mypy_path = "src"
+namespace_packages = true
+explicit_package_bases = true
+strict = true
+enable_error_code = [
+    "ignore-without-code",
+    "redundant-expr",
+    "truthy-bool",
+]
+exclude = [
+]
+
