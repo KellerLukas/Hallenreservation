@@ -1,7 +1,7 @@
-from src.utils.credentials import get_credentials
+from src.utils.credentials import get_o365_credentials_from_env
 from src.utils.fixed_o365_account import FixedAccount
 
-credentials = get_credentials()
+credentials = get_o365_credentials_from_env()
 account = FixedAccount(credentials)
 
 redirect_uri = "https://localhost:5000"
