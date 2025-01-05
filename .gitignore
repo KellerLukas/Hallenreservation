@@ -1,8 +1,10 @@
 #DO NOT COMMIT FOR PRIVACY REASONS
 demo/**/*
+src/utils/config.py
 **/o365_token.txt
 **/setenv
 run_hallenreservation.sh
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
