@@ -9,3 +9,5 @@ MONITORED_EMAIL_ADDRESS = "hallenreservation_upload@tvwuerenlos.ch"
 O365_CLIENT_ID_ENV_VAR = "O365_CLIENT_ID"
 O365_SECRET_ENV_VAR = "O365_SECRET_KEY"
 OPEN_AI_API_KEY_ENV_VAR = "OPENAI_API_KEY"
+
+LOG_FILE = "hallenreservation.log"
