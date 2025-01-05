@@ -1,6 +1,5 @@
 #DO NOT COMMIT FOR PRIVACY REASONS
 demo/**/*
-src/utils/config.py
 **/o365_token.txt
 
 # Byte-compiled / optimized / DLL files
