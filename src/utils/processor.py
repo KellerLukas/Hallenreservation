@@ -38,7 +38,7 @@ class EmailProcessor:
 
         pdf_content = base64.b64decode(attachment.content)
         pdf_buffer = BytesIO(pdf_content)
-        pdf_reader= PyPDF2.PdfReader(pdf_buffer)
+        pdf_reader = PyPDF2.PdfReader(pdf_buffer)
         pdf_text = ""
         for page_num in range(len(pdf_reader.pages)):
             page = pdf_reader.pages[page_num]
