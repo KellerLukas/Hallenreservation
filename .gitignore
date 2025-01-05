@@ -1,6 +1,7 @@
 #DO NOT COMMIT FOR PRIVACY REASONS
 demo/**/*
 **/o365_token.txt
+**/setenv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
