@@ -1,5 +1,5 @@
 import base64
-import fitz
+import PyPDF2
 import tempfile
 import logging
 from O365 import Account
@@ -38,11 +38,11 @@ class EmailProcessor:
 
         pdf_content = base64.b64decode(attachment.content)
         pdf_buffer = BytesIO(pdf_content)
-        pdf_document = fitz.open(stream=pdf_buffer, filetype="pdf")
+        pdf_reader= PyPDF2.PdfFileReader(pdf_buffer)
         pdf_text = ""
-        for page_num in range(pdf_document.page_count):
-            page = pdf_document.load_page(page_num)
-            pdf_text += page.get_text()
+        for page_num in range(pdf_reader.numPages):
+            page = pdf_reader.getPage(page_num)
+            pdf_text += page.extract_text()
 
         meta = self.find_attachment_meta.find(
             attachment_name=attachment.name, attachment_content=pdf_text
