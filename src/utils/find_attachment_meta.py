@@ -3,17 +3,10 @@ import logging
 from pydantic import BaseModel
 from typing import Optional
 
-<<<<<<< HEAD
 from utils.find_attachment_meta_prompt import (
     prompt_template as attachment_prompt_tmeplate,
 )
 from utils.find_attachment_meta_prompt import (
-=======
-from src.utils.find_attachment_meta_prompt import (
-    prompt_template as attachment_prompt_tmeplate,
-)
-from src.utils.find_attachment_meta_prompt import (
->>>>>>> 2777117c519a0f4f096b1384368fe8ca2c98e8bb
     question_template as attachment_question_template,
 )
 from src.utils.errors import ClassificationError

@@ -74,8 +74,6 @@ class EmailProcessor:
             temp_file.write(pdf_buffer.getvalue())
             temp_file_path = temp_file.name
 
-<<<<<<< HEAD
-=======
         existing_files = [item.name for item in folder.get_items()]
         if meta.clean_filename in existing_files:
             base_name, ext = meta.clean_filename.rsplit('.', 1)
@@ -86,6 +84,5 @@ class EmailProcessor:
                     meta.clean_filename = new_filename
                     break
                 suffix += 1
->>>>>>> 2777117c519a0f4f096b1384368fe8ca2c98e8bb
         new_file = folder.upload_file(temp_file_path, meta.clean_filename)
         logging.info(f"Uploaded file: {new_file.name}")
