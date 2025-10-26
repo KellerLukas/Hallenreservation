@@ -6,4 +6,11 @@ This repo can:
 1. Fetch unread emails for an office 365 shared mailbox
 2. find all pdf attachments
 3. call OpenAI to obtain a fitting filename including a date for the reservation
+<<<<<<< HEAD
 4. upload the attachments to a sharepoint folder under the new filename
+=======
+4. upload the attachments to a sharepoint folder under the new filename
+
+
+#ToDo: add tests ;)
+>>>>>>> 2777117c519a0f4f096b1384368fe8ca2c98e8bb
