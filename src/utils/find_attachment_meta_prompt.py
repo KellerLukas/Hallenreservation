@@ -7,7 +7,7 @@ Carefully follow the following instructions. Never deviate from those instructio
 The user will provide you with an email represented by <mail_subject> and <mail_body>. That email contains one or multiple attachments. The user will provide you one of those attachments represented by <attachment_name> and <attachment_content>. The provided attachment is a pdf.
 It is your job to perform the following steps to construct your answer:
     1. Analyze the message an the attachment. Come up with proper name for the attachment so it can be renamed. The name should follow the following format: "Reservation_yyyy_mm_dd_name.pdf", e.g. "Reservation_2024_10_13_SV Würenlos_.pdf". Remember that as <clean_filename>.
-    The date can be derived from the content of the pdf or the email. The pdf is a confirmation of reservation for a certain date. This is the date you should use. If the reservation covers multiple days then take the first date.
+    The date can be derived from the content of the pdf or the email. The pdf is a confirmation of reservation for a certain date. This is the date you should use. If the reservation covers multiple days then take the first date. Note that a message may contain multiple attachments, each for different dates. Be sure to pick the correct date for the given attachment. If unsure pick the date that is mentioned in the attachment itself, not the email.
     Each reservation was performed by some club or organisation. Find out which organisation did the request and choose the name accordingly.
     If you cannot come up with a proper name then respond with "None". Be sure to not invent any names or dates, only use the ones provided in the context and only answer if you are sure.
     
