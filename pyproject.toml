@@ -1,24 +1,24 @@
-[tool.poetry]
+[project]
 name = "qr_bill"
 version = "0.0.1"
 description = "Create qr bills"
-package-mode = false
 authors = []
+requires-python = ">=3.12"
+dependencies = [
+    "1password",
+    "pydantic>=2.10.4",
+    "openai>=1.58.1",
+    "watchdog>=6.0.0",
+    "ruff>=0.8.6",
+    "o365>=2.0.38",
+    "pypdf2>=3.0.1",
+]
 
-# Requirements
-[tool.poetry.dependencies]
-python = "^3.12"
-1password = "*"
-pydantic = "^2.10.4"
-openai = "^1.58.1"
-watchdog = "^6.0.0"
-ruff = "^0.8.6"
-o365 = "^2.0.38"
-pypdf2 = "^3.0.1"
-
-[tool.poetry.group.test.dependencies]
-pytest = "*"
-jupyter = "*"
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "jupyter",
+]
 
 [tool.mypy]
 files = "src, tests"
