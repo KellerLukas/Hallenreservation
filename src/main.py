@@ -4,7 +4,7 @@ from src.utils.fixed_o365_account import FixedAccount
 from src.utils.processor import EmailProcessor
 from src.utils.errors import NotAuthenticatedError
 from src.utils.config import MONITORED_EMAIL_ADDRESS
-from utils.setup_logging import setup_logging_to_file
+from src.utils.setup_logging import setup_logging_to_file
 
 
 setup_logging_to_file()
