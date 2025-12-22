@@ -12,6 +12,7 @@ dependencies = [
     "ruff>=0.8.6",
     "o365>=2.0.38",
     "pypdf2>=3.0.1",
+    "numpy>=2.4.0",
 ]
 
 [project.optional-dependencies]

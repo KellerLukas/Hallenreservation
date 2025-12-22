@@ -1,15 +1,17 @@
 import base64
+import re
+from typing import Optional, Tuple
 import PyPDF2
 import tempfile
 import logging
+import numpy as np
 from O365 import Account
 from O365.message import Message, MessageAttachment
 from io import BytesIO
 from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
 from src.utils.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
 
-
-#ToDo: prevent sending huge files containing Reglemente
+PAGE_NUMBER_REGEX = re.compile(r"Seite (\d+)/(\d+)")
 
 class EmailProcessor:
     def __init__(self, message: Message, account: Account):
@@ -42,9 +44,25 @@ class EmailProcessor:
         pdf_buffer = BytesIO(pdf_content)
         pdf_reader = PyPDF2.PdfReader(pdf_buffer)
         pdf_text = ""
+        expected_num_of_pages = np.inf
         for page_num in range(len(pdf_reader.pages)):
+            if page_num > expected_num_of_pages:
+                logging.info(f"... stopping reading pdf {attachment.name} at page {page_num} due to expected number of pages {expected_num_of_pages}")
+                break
             page = pdf_reader.pages[page_num]
-            pdf_text += page.extract_text()
+            page_text = page.extract_text()
+            pdf_text += page_text
+            if page_num == 0:
+                assumed_current_page, assumed_expected_num_of_pages = self.extract_page_number_from_pdf_text(page_text)
+                if assumed_current_page is not None and assumed_expected_num_of_pages is not None:
+                    if assumed_current_page != page_num:
+                        logging.warning(
+                            f"Page number mismatch in {attachment.name}: "
+                            f"assumed current page {assumed_current_page}, "
+                            f"actual page {page_num}"
+                        )
+                        continue
+                    expected_num_of_pages = assumed_expected_num_of_pages
 
         meta = self.find_attachment_meta.find(
             attachment_name=attachment.name, attachment_content=pdf_text
@@ -86,3 +104,10 @@ class EmailProcessor:
                 suffix += 1
         new_file = folder.upload_file(temp_file_path, meta.clean_filename)
         logging.info(f"Uploaded file: {new_file.name}")
+    
+    @staticmethod
+    def extract_page_number_from_pdf_text(pdf_text: str) -> Tuple[Optional[int], Optional[int]]:
+            match = PAGE_NUMBER_REGEX.search(pdf_text)
+            if match:
+                return int(match.group(1)) - 1 , int(match.group(2)) - 1
+            return None, None
