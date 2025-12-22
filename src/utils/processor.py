@@ -46,7 +46,7 @@ class EmailProcessor:
         pdf_text = ""
         expected_num_of_pages = np.inf
         for page_num in range(len(pdf_reader.pages)):
-            if page_num > expected_num_of_pages:
+            if page_num >= expected_num_of_pages:
                 logging.info(f"... stopping reading pdf {attachment.name} at page {page_num} due to expected number of pages {expected_num_of_pages}")
                 break
             page = pdf_reader.pages[page_num]
@@ -109,5 +109,5 @@ class EmailProcessor:
     def extract_page_number_from_pdf_text(pdf_text: str) -> Tuple[Optional[int], Optional[int]]:
             match = PAGE_NUMBER_REGEX.search(pdf_text)
             if match:
-                return int(match.group(1)) - 1 , int(match.group(2)) - 1
+                return int(match.group(1)) - 1 , int(match.group(2))
             return None, None
