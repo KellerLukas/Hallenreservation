@@ -3,10 +3,7 @@ demo/**/*
 **/o365_token.txt
 **/setenv
 run_hallenreservation.sh
-<<<<<<< HEAD
-=======
-
->>>>>>> 2777117c519a0f4f096b1384368fe8ca2c98e8bb
+**/config.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -175,3 +172,4 @@ cython_debug/
 lib
 
 .DS_Store
+
