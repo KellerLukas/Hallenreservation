@@ -4,7 +4,6 @@ from typing import List, Optional, Tuple
 import PyPDF2
 import tempfile
 import logging
-import numpy as np
 from O365 import Account
 from O365.message import Message, MessageAttachment
 from io import BytesIO
@@ -43,43 +42,43 @@ class EmailProcessor:
 
         pdf_content = base64.b64decode(attachment.content)
         pdf_buffer = BytesIO(pdf_content)
-
-        pdf_text = self.read_pdf(pdf_buffer)
+        pdf_reader = PyPDF2.PdfReader(pdf_buffer)
+        cutoff_page_num = self.determine_pdf_cutoff(pdf_reader=pdf_buffer)
+        pdf_reader = self.cut_pdf_reader_after_page_n(
+            pdf_reader=pdf_reader, n=cutoff_page_num
+        )
+        pdf_text = self.read_pdf(pdf_reader)
 
         metas = self.find_attachment_meta.find(
             attachment_name=attachment.name, attachment_content=pdf_text
         )
-        self.upload_to_sharepoint(pdf_buffer=pdf_buffer, metas=metas)
+        self.upload_to_sharepoint(pdf_reader=pdf_reader, metas=metas)
 
-    def read_pdf(self, buffer: BytesIO) -> str:
-        pdf_reader = PyPDF2.PdfReader(buffer)
+    def read_pdf(self, reader: PyPDF2.PdfReader) -> str:
         pdf_text = ""
-        expected_num_of_pages = np.inf
-        for page_num in range(len(pdf_reader.pages)):
-            if page_num >= expected_num_of_pages:
-                logging.info(
-                    f"... stopping reading pdf at page {page_num} due to expected number of pages {expected_num_of_pages}"
-                )
-                break
-            page = pdf_reader.pages[page_num]
+        for page in reader.pages:
             page_text = page.extract_text()
             pdf_text += page_text
-            if page_num == 0:
-                assumed_current_page, assumed_expected_num_of_pages = (
-                    self.extract_page_number_from_pdf_text(page_text)
-                )
-                if (
-                    assumed_current_page is not None
-                    and assumed_expected_num_of_pages is not None
-                ):
-                    if assumed_current_page != page_num:
-                        logging.warning(
-                            f"Page number mismatch: assumed current page {assumed_current_page}, "
-                            f"actual page {page_num}"
-                        )
-                        continue
-                    expected_num_of_pages = assumed_expected_num_of_pages
         return pdf_text
+
+    def determine_pdf_cutoff(self, pdf_reader: PyPDF2.PdfReader) -> Optional[int]:
+        first_page = pdf_reader.pages[0]
+        page_text = first_page.extract_text()
+        detected_current_page, detected_expected_num_of_pages = (
+            self.extract_page_number_from_pdf_text(page_text)
+        )
+        if (
+            detected_current_page is not None
+            or detected_expected_num_of_pages is not None
+        ):
+            return None
+        if detected_current_page != 0:
+            logging.warning(
+                f"Page number mismatch: assumed current page {detected_current_page}, "
+                f"actual page 0"
+            )
+            return None
+        return detected_expected_num_of_pages
 
     def get_attachments(self) -> list[MessageAttachment]:
         if not self.message.has_attachments:
@@ -87,17 +86,19 @@ class EmailProcessor:
         self.message.attachments.download_attachments()
         return [att for att in self.message.attachments]
 
-    def upload_to_sharepoint(self, pdf_buffer: BytesIO, metas: List[AttachmentMeta]):
+    def upload_to_sharepoint(
+        self, pdf_reader: PyPDF2.PdfReader, metas: List[AttachmentMeta]
+    ):
         logging.info("... uploading to sharepoint")
         sharepoint = self.account.sharepoint()
         site = sharepoint.get_site(SHAREPOINT_SITE_ID)
         drive = site.get_default_document_library()
 
         for meta in metas:
-            self.upload_single_file_to_sharepoint(drive, pdf_buffer, meta)
+            self.upload_single_file_to_sharepoint(drive, pdf_reader, meta)
 
     def upload_single_file_to_sharepoint(
-        self, drive, pdf_buffer: BytesIO, meta: AttachmentMeta
+        self, drive, pdf_reader: PyPDF2.PdfReader, meta: AttachmentMeta
     ):
         folder_path = f"{SHAREPOINT_FOLDER_PATH}/{str(meta.year)}"
         try:
@@ -107,7 +108,7 @@ class EmailProcessor:
             logging.info(f"Created folder: {folder_path}")
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-            temp_file.write(pdf_buffer.getvalue())
+            temp_file.write(pdf_reader.stream.getvalue())
             temp_file_path = temp_file.name
 
         existing_files = [item.name for item in folder.get_items()]
@@ -131,3 +132,17 @@ class EmailProcessor:
         if match:
             return int(match.group(1)) - 1, int(match.group(2))
         return None, None
+
+    @staticmethod
+    def cut_pdf_reader_after_page_n(
+        pdf_reader: PyPDF2.PdfReader, n: int
+    ) -> PyPDF2.PdfReader:
+        pdf_writer = PyPDF2.PdfWriter()
+        for page_num in range(min(n + 1, len(pdf_reader.pages))):
+            pdf_writer.add_page(pdf_reader.pages[page_num])
+
+        output_buffer = BytesIO()
+        pdf_writer.write(output_buffer)
+        output_buffer.seek(0)
+
+        return PyPDF2.PdfReader(output_buffer)
