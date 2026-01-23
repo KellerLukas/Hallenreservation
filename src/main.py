@@ -34,12 +34,15 @@ inbox = mailbox.inbox_folder()
 
 messages = inbox.get_messages(query="isRead eq false", order_by="receivedDateTime desc")
 for message in messages:
+    logging.info(f"Processing message {message.subject}...")
     processor = EmailProcessor(message=message, account=account)
     try:
         processor.process()
     except Exception as e:
+        logging.info("... failed, sending alert message.")
         send_alert_message(mailbox=mailbox, issue=e.__traceback__)
         continue
+    logging.info("... done, marking as read.")
     message.mark_as_read()
 
 account.connection.refresh_token()
