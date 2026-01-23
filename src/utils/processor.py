@@ -43,7 +43,7 @@ class EmailProcessor:
         pdf_content = base64.b64decode(attachment.content)
         pdf_buffer = BytesIO(pdf_content)
         pdf_reader = PyPDF2.PdfReader(pdf_buffer)
-        cutoff_page_num = self.determine_pdf_cutoff(pdf_reader=pdf_buffer)
+        cutoff_page_num = self.determine_pdf_cutoff(pdf_reader=pdf_reader)
         pdf_reader = self.cut_pdf_reader_after_page_n(
             pdf_reader=pdf_reader, n=cutoff_page_num
         )
