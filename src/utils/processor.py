@@ -45,9 +45,12 @@ class EmailProcessor:
         pdf_buffer = BytesIO(pdf_content)
         pdf_reader = PyPDF2.PdfReader(pdf_buffer)
         cutoff_page_num = self.determine_pdf_cutoff(pdf_reader=pdf_reader)
-        pdf_reader = self.cut_pdf_reader_after_page_n(
-            pdf_reader=pdf_reader, n=cutoff_page_num
-        )
+        if cutoff_page_num:
+            pdf_reader = self.cut_pdf_reader_after_page_n(
+                pdf_reader=pdf_reader, n=cutoff_page_num
+            )
+        else:
+            logging.warning(f"No cutoff page number detected!")
         pdf_text = self.read_pdf(pdf_reader)
 
         metas = self.find_attachment_meta.find(
@@ -68,10 +71,7 @@ class EmailProcessor:
         detected_current_page, detected_expected_num_of_pages = (
             self.extract_page_number_from_pdf_text(page_text)
         )
-        if (
-            detected_current_page is not None
-            or detected_expected_num_of_pages is not None
-        ):
+        if detected_current_page is None or detected_expected_num_of_pages is None:
             return None
         if detected_current_page != 0:
             logging.warning(
@@ -139,7 +139,7 @@ class EmailProcessor:
         pdf_reader: PyPDF2.PdfReader, n: int
     ) -> PyPDF2.PdfReader:
         pdf_writer = PyPDF2.PdfWriter()
-        for page_num in range(min(n + 1, len(pdf_reader.pages))):
+        for page_num in range(min(n, len(pdf_reader.pages))):
             pdf_writer.add_page(pdf_reader.pages[page_num])
 
         output_buffer = BytesIO()
