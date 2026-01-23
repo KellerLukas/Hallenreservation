@@ -32,6 +32,7 @@ class EmailProcessor:
                 # ToDo: handle this better: distinguish different exceptions and add retry
                 logging.warning(f"Error processing attachment {attachment.name}")
                 logging.warning(e)
+                raise Exception
         logging.info(f"... done processing message {self.message.subject}")
 
     def process_attachment(self, attachment: MessageAttachment):
