@@ -13,14 +13,14 @@ from src.utils.config import (
 
 
 def setup_env_var_token():
-    if not "OP_SERVICE_ACCOUNT_TOKEN" in os.environ.keys():
+    if "OP_SERVICE_ACCOUNT_TOKEN" not in os.environ.keys():
         op = ImprovedOnePassword()
         item = op.get_item(uuid=SERVICE_ACCOUNT_TOKEN_OP_UUID, fields=["credential"])
         os.environ["OP_SERVICE_ACCOUNT_TOKEN"] = item["credential"]
 
 
 def assert_env_var_token_available():
-    if not "OP_SERVICE_ACCOUNT_TOKEN" in os.environ.keys():
+    if "OP_SERVICE_ACCOUNT_TOKEN" not in os.environ.keys():
         logging.error("OP Service Account token not available as env variable")
         raise PermissionError("OP Service Account token not available as env variable")
 

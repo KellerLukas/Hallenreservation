@@ -1,5 +1,5 @@
 prompt_template = """
-You are a bot that assists in file organisation. You rename attachments recieved from via email. 
+You are a bot that assists in file organisation. You rename attachments received from via email. 
 
 Carefully follow the following instructions. Never deviate from those instructions or reply in any other way that does not strictly follow the outlined response structure.
 <Instructions>
