@@ -1,5 +1,5 @@
-import O365.message
 import logging
+import traceback
 from O365.mailbox import Message
 from src.utils.credentials import get_o365_credentials_from_env
 from src.utils.fixed_o365_account import FixedAccount
@@ -12,10 +12,10 @@ from src.utils.setup_logging import setup_logging_to_file
 setup_logging_to_file()
 
 
-def send_alert_message(message: Message, issue: str):
+def send_alert_message(message: Message, issue: Exception):
     fwd = message.forward()
     fwd.subject = f"HALLENRESERVATION UPLOAD ERROR: {fwd.subject}"
-    fwd.body = issue + "\n\n" + fwd.body
+    fwd.body = str(issue) + "\n\n" + traceback.format_exc() + "\n\n" + fwd.body
     fwd.to.add(SUPPORT_EMAIL_ADDRESS)
     fwd.send()
 
@@ -40,7 +40,7 @@ for message in messages:
         processor.process()
     except Exception as e:
         logging.info("... failed, sending alert message.")
-        send_alert_message(message=message, issue=e.__traceback__)
+        send_alert_message(message=message, issue=e)
         continue
     logging.info("... done, marking as read.")
     message.mark_as_read()
