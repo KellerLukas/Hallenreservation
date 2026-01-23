@@ -15,7 +15,7 @@ def send_alert_message(mailbox: MailBox, issue: str):
     message = mailbox.new_message()
     message.subject = "HALLENRESERVATION UPLOAD ERROR"
     message.body = issue
-    message.to = SUPPORT_EMAIL_ADDRESS
+    message.to = [SUPPORT_EMAIL_ADDRESS]
     message.sender = MONITORED_EMAIL_ADDRESS
     message.send()
 
