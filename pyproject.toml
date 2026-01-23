@@ -13,7 +13,6 @@ dependencies = [
     "o365>=2.0.38",
     "pypdf2>=3.0.1",
     "numpy>=2.4.0",
-    "pandas>=3.0.0",
 ]
 
 [dependency-groups]

@@ -1,12 +1,12 @@
-import pandas as pd
 from openai import OpenAI
 import logging
 import re
 from typing import List, Optional
+from datetime import datetime
 from pydantic import BaseModel
 
 from src.utils.find_attachment_meta_prompt import (
-    prompt_template as attachment_prompt_tmeplate,
+    prompt_template as attachment_prompt_template,
 )
 from src.utils.find_attachment_meta_prompt import (
     question_template as attachment_question_template,
@@ -76,7 +76,7 @@ class FindAttachmentMeta:
         logging.warning("No booking ID found!")
         return None
 
-    def _find_dates(self, attachment_content: str) -> List[pd.Timestamp]:
+    def _find_dates(self, attachment_content: str) -> List[datetime]:
         subsequences = re.findall(
             r"Mietoptionen(.*?)Kosten", attachment_content, re.DOTALL
         )
@@ -88,7 +88,7 @@ class FindAttachmentMeta:
             logging.warning("No dates found!")
             raise ClassificationError("No dates found!")
         unique_dates = list(set(found_dates))
-        return pd.to_datetime(unique_dates, format="%d.%m.%Y").tolist()
+        return [datetime.strptime(date, "%d.%m.%Y") for date in unique_dates]
 
     def find_using_openai(
         self, attachment_name: str, attachment_content: str
@@ -126,7 +126,7 @@ class FindAttachmentMeta:
         return [response]
 
     def _setup_prompt(self, attachment_name: str, attachment_content: str) -> str:
-        template = attachment_prompt_tmeplate
+        template = attachment_prompt_template
         prompt = template.format(
             mail_body=self.message_body,
             mail_subject=self.message_subject,
