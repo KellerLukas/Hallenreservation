@@ -50,7 +50,7 @@ class EmailProcessor:
                 pdf_reader=pdf_reader, n=cutoff_page_num
             )
         else:
-            logging.warning(f"No cutoff page number detected!")
+            logging.warning("No cutoff page number detected!")
         pdf_text = self.read_pdf(pdf_reader)
 
         metas = self.find_attachment_meta.find(

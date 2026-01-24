@@ -1,7 +1,6 @@
 import os
 import json
 from src.utils.credentials import (
-    get_o365_credentials_from_env,
     setup_env_var_token,
     get_o365_credentials_from_op,
 )

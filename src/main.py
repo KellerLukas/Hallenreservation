@@ -14,7 +14,6 @@ setup_logging_to_file()
 
 def send_alert_message(message: Message, issue: Exception):
     fwd = message.forward()
-    message.mark_as_unread()
     fwd.subject = f"HALLENRESERVATION UPLOAD ERROR: {fwd.subject}"
     fwd.body = str(issue) + "\n\n" + traceback.format_exc() + "\n\n" + fwd.body
     fwd.to.add(SUPPORT_EMAIL_ADDRESS)
@@ -43,7 +42,6 @@ for message in messages:
     except Exception as e:
         logging.info("... failed, sending alert message.")
         send_alert_message(message=message, issue=e)
-        continue
     logging.info("... done, marking as read.")
     message.mark_as_read()
 

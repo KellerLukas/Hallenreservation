@@ -13,6 +13,7 @@ from src.utils.config import (
 
 def setup_env_var_token():
     from src.utils.improved_onepassword import ImprovedOnePassword
+
     if "OP_SERVICE_ACCOUNT_TOKEN" not in os.environ.keys():
         op = ImprovedOnePassword()
         item = op.get_item(uuid=SERVICE_ACCOUNT_TOKEN_OP_UUID, fields=["credential"])
@@ -27,6 +28,7 @@ def assert_env_var_token_available():
 
 def get_o365_credentials_from_op() -> Tuple[str, str]:
     from src.utils.improved_onepassword import ImprovedOnePassword
+
     op = ImprovedOnePassword()
     fields = op.get_item(
         uuid=O365_CREDS_OP_UUID,
