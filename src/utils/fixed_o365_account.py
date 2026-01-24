@@ -3,27 +3,18 @@ from typing import Optional
 
 
 class FixedAccount(Account):
-    def get_consent_url(self, *, scopes: Optional[list] = None, **kwargs) -> str:
+    def get_consent_url(
+        self, *, requested_scopes: Optional[list] = None, redirect_uri, **kwargs
+    ) -> str:
         """In VS Code the input of the token_url seems to be buggy or not work at all.
         This divides the authentication method into two steps as a workaround.
         """
 
         if self.con.auth_flow_type in ("authorization", "public"):
-            if scopes is not None:
-                if self.con.scopes is not None:
-                    raise RuntimeError(
-                        "The scopes must be set either at the Account "
-                        "instantiation or on the account.authenticate method."
-                    )
-                self.con.scopes = self.protocol.get_scopes_for(scopes)
-            else:
-                if self.con.scopes is None:
-                    raise ValueError(
-                        "The scopes are not set. Define the scopes requested."
-                    )
-
-            consent_url, _ = self.con.get_authorization_url(**kwargs)
-            return consent_url
+            consent_url, flow = self.get_authorization_url(
+                requested_scopes, redirect_uri=redirect_uri, **kwargs
+            )
+            return consent_url, flow
 
         elif self.con.auth_flow_type in ("credentials", "certificate", "password"):
             return self.con.request_token(None, requested_scopes=scopes, **kwargs)
@@ -33,10 +24,10 @@ class FixedAccount(Account):
                 ' or "credentials"'
             )
 
-    def put_token_url(self, token_url: str, **kwargs) -> bool:
+    def put_token_url(self, token_url: str, flow, **kwargs) -> bool:
         if token_url:
-            result = self.con.request_token(
-                token_url, **kwargs
+            result = self.request_token(
+                token_url, flow=flow, **kwargs
             )  # no need to pass state as the session is the same
             if result:
                 print(

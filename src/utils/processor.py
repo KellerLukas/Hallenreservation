@@ -101,11 +101,16 @@ class EmailProcessor:
     def upload_single_file_to_sharepoint(
         self, drive, pdf_reader: PyPDF2.PdfReader, meta: AttachmentMeta
     ):
-        folder_path = f"{SHAREPOINT_FOLDER_PATH}/{str(meta.year)}"
+        year = str(meta.year)
+        folder_path = f"{SHAREPOINT_FOLDER_PATH}/{year}"
+        try:
+            parent = drive.get_item_by_path(SHAREPOINT_FOLDER_PATH)
+        except Exception:
+            raise RuntimeError(f"Base path does not exist: {SHAREPOINT_FOLDER_PATH}")
         try:
             folder = drive.get_item_by_path(folder_path)
         except Exception:
-            folder = drive.create_folder(folder_path)
+            folder = parent.create_child_folder(year)
             logging.info(f"Created folder: {folder_path}")
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:

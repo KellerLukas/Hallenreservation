@@ -31,32 +31,25 @@ class FindAttachmentMeta:
     def find(
         self, attachment_name: str, attachment_content: str
     ) -> List[AttachmentMeta]:
-        try:
-            org = self._find_organization(attachment_content)
-            dates = self._find_dates(attachment_content)
-        except ClassificationError:
-            logging.warning(
-                "Failed to classify attachment content conventionally. Using OpenAI fallback."
-            )
-            return self.find_using_openai(attachment_name, attachment_content)
+        booking_id = self._find_booking_id(attachment_content)
+        org = self._find_organization(attachment_content, booking_id=booking_id)
+        dates = self._find_dates(attachment_content)
 
         metas = []
         for date in dates:
-            clean_filename = (
-                "Reservation_{date.year}_{date.month:02d}_{date.day:02d}_{org}.pdf"
-            )
+            clean_filename = f"Reservation_{date.year}_{date.month:02d}_{date.day:02d}_{org}_{booking_id}.pdf"
+            clean_filename = clean_filename_for_sharepoint(clean_filename)
             metas.append(
                 AttachmentMeta(
-                    clean_filename=clean_filename.format(date=date, org=org),
+                    clean_filename=clean_filename,
                     year=date.year,
                 )
             )
         return metas
 
-    def _find_organization(self, attachment_content: str) -> Optional[str]:
-        booking_id = self._find_booking_id(attachment_content)
-        if booking_id is None:
-            raise ClassificationError("No booking ID found!")
+    def _find_organization(
+        self, attachment_content: str, booking_id: str
+    ) -> Optional[str]:
         if booking_id + "\n" != attachment_content[: len(booking_id) + 1]:
             logging.warning(
                 f"Booking ID {booking_id} does not match start of attachment content!"
@@ -67,14 +60,14 @@ class FindAttachmentMeta:
         return attachment_content[len(booking_id) + 1 :].splitlines()[0]
 
     def _find_booking_id(self, attachment_content: str) -> Optional[str]:
-        match = re.search(
-            r"Definitive Buchungsbestätigung \((\d+)\)", attachment_content
-        )
-        if match:
-            booking_id = match.group(1)
+        matches = re.search(
+            r"Buchungsbestätigung \((\d+)\)", attachment_content
+        )  # Note: at least Defintivie Buchungsbestätigung as well as "Geänderte definitive Buchungsbestätigung are possible"
+        if matches:
+            booking_id = matches.group(1)
             return booking_id
         logging.warning("No booking ID found!")
-        return None
+        raise ClassificationError("No booking ID found!")
 
     def _find_dates(self, attachment_content: str) -> List[datetime]:
         subsequences = re.findall(
@@ -115,6 +108,7 @@ class FindAttachmentMeta:
             message = f"Could not find clean filename for attachment {attachment_name}, reason : {response.explain}"
             logging.warning(message)
             raise ClassificationError(message)
+        response.clean_filename = clean_filename_for_sharepoint(response.clean_filename)
         if response.year is None:
             message = f"Could not find year for for attachment {attachment_name}, reason : {response.explain}"
             logging.warning(message)
@@ -145,3 +139,37 @@ def is_none(value):
     if isinstance(value, str) and value.lower() == "none":
         return True
     return False
+
+
+def clean_filename_for_sharepoint(filename):
+    """
+    Cleans a filename to be compatible with SharePoint restrictions.
+    Removes invalid characters and reserved names.
+
+    Args:
+        filename (str): The original filename
+
+    Returns:
+        str: The cleaned filename
+    """
+    # Characters not allowed in SharePoint filenames
+    invalid_chars = r'[<>:"/\\|?*]'
+
+    # Remove invalid characters
+    cleaned = re.sub(invalid_chars, "", filename)
+
+    # Remove leading/trailing spaces and periods
+    cleaned = cleaned.strip(". ")
+
+    # Replace multiple spaces with single space
+    cleaned = re.sub(r"\s+", " ", cleaned)
+
+    # Remove reserved names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+    reserved = r"^(CON|PRN|AUX|NUL|COM\d|LPT\d)(?:\.|$)"
+    if re.match(reserved, cleaned, re.IGNORECASE):
+        cleaned = f"_{cleaned}"
+
+    # Limit length to 255 characters (SharePoint limit)
+    cleaned = cleaned[:255]
+
+    return cleaned
