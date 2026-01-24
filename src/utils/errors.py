@@ -1,6 +1,6 @@
-class ClassificationError(BaseException):
+class ClassificationError(Exception):
     pass
 
 
-class NotAuthenticatedError(BaseException):
+class NotAuthenticatedError(Exception):
     pass
