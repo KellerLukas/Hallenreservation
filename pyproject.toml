@@ -5,7 +5,6 @@ description = "Create qr bills"
 authors = []
 requires-python = ">=3.12"
 dependencies = [
-    "1password",
     "pydantic>=2.10.4",
     "openai>=1.58.1",
     "watchdog>=6.0.0",
@@ -20,6 +19,7 @@ dev = [
     "pytest",
     "jupyter",
     "ipynb",
+    "1password",
 ]
 
 [tool.mypy]

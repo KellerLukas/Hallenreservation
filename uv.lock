@@ -1665,7 +1665,6 @@ name = "qr-bill"
 version = "0.0.1"
 source = { virtual = "." }
 dependencies = [
-    { name = "1password" },
     { name = "numpy" },
     { name = "o365" },
     { name = "openai" },
@@ -1677,6 +1676,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "1password" },
     { name = "ipynb" },
     { name = "jupyter" },
     { name = "pytest" },
@@ -1684,7 +1684,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "1password" },
     { name = "numpy", specifier = ">=2.4.0" },
     { name = "o365", specifier = ">=2.0.38" },
     { name = "openai", specifier = ">=1.58.1" },
@@ -1696,6 +1695,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "1password" },
     { name = "ipynb" },
     { name = "jupyter" },
     { name = "pytest" },
