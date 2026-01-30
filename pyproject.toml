@@ -19,6 +19,7 @@ dev = [
     "jupyter",
     "ipynb",
     "1password",
+    "mypy",
 ]
 
 [tool.mypy]

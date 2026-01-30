@@ -99,7 +99,7 @@ class EmailProcessor:
     def upload_single_file_to_sharepoint(
         self, pdf_reader: PyPDF2.PdfReader, meta: AttachmentMeta
     ):
-        folder = get_reservations_folder(year=meta.year)
+        folder = get_reservations_folder(account=self.account, year=meta.year)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
             temp_file.write(pdf_reader.stream.getvalue())

@@ -83,7 +83,7 @@ class ReservationReminder:
 
     def get_reservations_on_date(self, date: datetime) -> Dict[str, File]:
         target_string = get_date_string_from_date(date)
-        folder = get_reservations_folder(date.year)
+        folder = get_reservations_folder(account=self.account, year=date.year)
         files = {item.name: item for item in folder.get_items()}
         matching_files = {
             filename: file
