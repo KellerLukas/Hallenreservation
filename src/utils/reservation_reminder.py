@@ -105,10 +105,12 @@ class ReservationReminder:
         text_lines = [
             "Hallo",
             f"Für den {datetime.strftime(date, '%A, %d.%m.%Y')}, liegen folgende Reservationen vor:",
+            EMAIL_NEWLINE_STR,
         ]
         text_lines += reservations.keys()
-        msg.body = EMAIL_NEWLINE_STR.join(text_lines)
-        msg.body += EMAIL_NEWLINE_STR
+        text = EMAIL_NEWLINE_STR.join(text_lines)
+        text += EMAIL_NEWLINE_STR
+        msg.body = text
         msg.to.add(DEFAULT_FROM_ADDRESS)
         for recipient in recipients:
             msg.bcc.add(recipient)
