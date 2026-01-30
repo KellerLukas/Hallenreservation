@@ -105,7 +105,6 @@ class ReservationReminder:
         text_lines = [
             "Hallo",
             f"Für den {datetime.strftime(date, '%A, %d.%m.%Y')}, liegen folgende Reservationen vor:",
-            EMAIL_NEWLINE_STR,
             "<ul>",
         ]
         text_lines += [f"<li>{key}</li>" for key in reservations.keys()]
