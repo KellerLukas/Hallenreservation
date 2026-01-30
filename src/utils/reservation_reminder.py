@@ -115,8 +115,8 @@ class ReservationReminder:
             for filename, item in reservations.items():
                 if not item:
                     continue
+                item.download(to_path=td, name=filename)
                 local_path = os.path.join(td, filename)
-                item.download(local_path)
                 msg.attachments.add(local_path)
 
             logging.info("... sending email ...")
