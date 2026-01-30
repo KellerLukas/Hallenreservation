@@ -4,6 +4,7 @@ demo/**/*
 **/setenv
 run_hallenreservation.sh
 **/config.py
+subscription_metas.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
