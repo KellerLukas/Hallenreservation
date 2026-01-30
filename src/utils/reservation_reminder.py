@@ -12,6 +12,7 @@ from src.utils.find_attachment_meta import get_date_string_from_date
 from src.utils.processor import get_reservations_folder
 from src.utils.config import DEFAULT_FROM_ADDRESS
 
+EMAIL_NEWLINE_STR = "\n<br>\n"
 
 @dataclass
 class SubscriptionMeta:
@@ -105,7 +106,8 @@ class ReservationReminder:
             f"Für den {datetime.strftime(date, '%A, %d.%m.%Y')}, liegen folgende Reservationen vor:",
         ]
         text_lines += reservations.keys()
-        msg.body = "\n".join(text_lines)
+        msg.body = EMAIL_NEWLINE_STR.join(text_lines)
+        msg.body += EMAIL_NEWLINE_STR
         msg.to.add(DEFAULT_FROM_ADDRESS)
         for recipient in recipients:
             msg.bcc.add(recipient)

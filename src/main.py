@@ -1,5 +1,6 @@
 import logging
 import traceback
+import locale
 from datetime import datetime
 from O365.mailbox import Message
 from O365.account import Account
@@ -15,10 +16,12 @@ from src.utils.config import (
 )
 from src.utils.setup_logging import setup_logging_to_file
 from src.utils.reservation_reminder import (
+    EMAIL_NEWLINE_STR,
     ReservationReminder,
     load_subscriptions,
 )
 
+locale.setlocale(locale.LC_TIME, "de_CH.UTF-8")  
 
 setup_logging_to_file()
 
@@ -40,7 +43,7 @@ def main():
 def send_alert_message_for_upload(message: Message, issue: Exception) -> bool:
     fwd = message.forward()
     fwd.subject = f"HALLENRESERVATION UPLOAD ERROR: {fwd.subject}"
-    fwd.body = str(issue) + "\n\n" + traceback.format_exc() + "\n\n" + fwd.body
+    fwd.body = str(issue) + EMAIL_NEWLINE_STR + traceback.format_exc() + EMAIL_NEWLINE_STR + fwd.body
     fwd.to.add(SUPPORT_EMAIL_ADDRESS)
     return fwd.send()
 
@@ -50,7 +53,7 @@ def send_alert_message_for_reminder(account: Account, issue: Exception) -> bool:
     msg = mailbox.new_message()
     msg.to.add(SUPPORT_EMAIL_ADDRESS)
     msg.subject = "HALLENRESERVATION REMINDER ERROR"
-    msg.body = str(issue) + "\n\n" + traceback.format_exc()
+    msg.body = str(issue) + EMAIL_NEWLINE_STR + traceback.format_exc()
     return msg.send()
 
 
