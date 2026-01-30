@@ -14,6 +14,7 @@ from src.utils.config import DEFAULT_FROM_ADDRESS
 
 EMAIL_NEWLINE_STR = "\n<br>\n"
 
+
 @dataclass
 class SubscriptionMeta:
     email: str

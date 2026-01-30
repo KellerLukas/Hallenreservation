@@ -1,7 +1,8 @@
 import logging
 import traceback
 import locale
-from datetime import datetime
+from datetime import datetime, timezone, timedelta, time
+from pathlib import Path
 from O365.mailbox import Message
 from O365.account import Account
 from src.utils.credentials import get_o365_credentials_from_env
@@ -21,7 +22,16 @@ from src.utils.reservation_reminder import (
     load_subscriptions,
 )
 
-locale.setlocale(locale.LC_TIME, "de_CH.UTF-8")  
+TIMESTAMP_FILE = "last_reminder_run.txt"
+
+locale.setlocale(locale.LC_TIME, "de_CH.UTF-8")
+"""
+Note: may need to install this and reboot
+
+sudo sed -i 's/^# *\(de_CH.UTF-8 UTF-8\)/\1/' /etc/locale.gen
+sudo locale-gen
+sudo update-locale
+"""
 
 setup_logging_to_file()
 
@@ -35,7 +45,15 @@ def main():
         raise NotAuthenticatedError("Not authenticated")
 
     process_incoming_reservations(account=account)
-    process_reminders(account=account)
+
+    last_reminders_timestamp = load_last_processed_reminders_timestamp()
+    now = datetime.now(timezone.utc)
+    yesterday = (now - timedelta(days=1)).date()
+    nine_am = time(9, 0, tzinfo=timezone.utc)
+
+    if last_reminders_timestamp.date() <= yesterday and now.time() >= nine_am:
+        process_reminders(account=account)
+        dump_last_processed_reminders_timestamp(now)
 
     account.connection.refresh_token()
 
@@ -43,7 +61,13 @@ def main():
 def send_alert_message_for_upload(message: Message, issue: Exception) -> bool:
     fwd = message.forward()
     fwd.subject = f"HALLENRESERVATION UPLOAD ERROR: {fwd.subject}"
-    fwd.body = str(issue) + EMAIL_NEWLINE_STR + traceback.format_exc() + EMAIL_NEWLINE_STR + fwd.body
+    fwd.body = (
+        str(issue)
+        + EMAIL_NEWLINE_STR
+        + traceback.format_exc()
+        + EMAIL_NEWLINE_STR
+        + fwd.body
+    )
     fwd.to.add(SUPPORT_EMAIL_ADDRESS)
     return fwd.send()
 
@@ -116,6 +140,32 @@ def process_reminders(account: Account):
             logging.info("... sending message successful.")
         else:
             logging.info("... failed to send message.")
+
+
+def dump_last_processed_reminders_timestamp(ts: datetime):
+    path = Path(TIMESTAMP_FILE)
+
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(ts.isoformat(), encoding="utf-8")
+
+
+def load_last_processed_reminders_timestamp() -> datetime:
+    path = Path(TIMESTAMP_FILE)
+
+    if not path.exists():
+        # First run: pretend last run was long ago
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+    raw = path.read_text(encoding="utf-8").strip()
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        raise ValueError(
+            f"Invalid timestamp format in {path}: {raw!r} (expected ISO-8601)"
+        )
 
 
 if __name__ == "__main__":
