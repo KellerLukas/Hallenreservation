@@ -25,13 +25,12 @@ from src.utils.reservation_reminder import (
 TIMESTAMP_FILE = "last_reminder_run.txt"
 
 locale.setlocale(locale.LC_TIME, "de_CH.UTF-8")
-"""
-Note: may need to install this and reboot
 
-sudo sed -i 's/^# *\(de_CH.UTF-8 UTF-8\)/\1/' /etc/locale.gen
-sudo locale-gen
-sudo update-locale
-"""
+# Note: may need to install this and reboot
+# sudo sed -i 's/^# *\(de_CH.UTF-8 UTF-8\)/\1/' /etc/locale.gen
+# sudo locale-gen
+# sudo update-locale
+
 
 setup_logging_to_file()
 
