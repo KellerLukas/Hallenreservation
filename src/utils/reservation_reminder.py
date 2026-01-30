@@ -93,16 +93,16 @@ class ReservationReminder:
         return matching_files
 
     def send_reminder_email(
-        self, reservations: Dict[str, File], date: str, recipients: List[str]
+        self, reservations: Dict[str, File], date: datetime, recipients: List[str]
     ):
         logging.info("... sending email ...")
         mailbox = self.account.mailbox(resource=DEFAULT_FROM_ADDRESS)
         msg = mailbox.new_message()
 
-        msg.subject = f"[TVW Reminder Hallen] Reservation vom {datetime.strptime(date, '%A, %d.%m.%Y')}"
+        msg.subject = f"[TVW Reminder Hallen] Reservation vom {datetime.strftime(date, '%A, %d.%m.%Y')}"
         text_lines = [
             "Hallo",
-            f"Für den {datetime.strptime(date, '%A, %d.%m.%Y')}, liegen folgende Reservationen vor:",
+            f"Für den {datetime.strftime(date, '%A, %d.%m.%Y')}, liegen folgende Reservationen vor:",
         ]
         text_lines += reservations.keys()
         msg.body = "\n".join(text_lines)
