@@ -6,6 +6,7 @@ import tempfile
 import logging
 from O365 import Account
 from O365.message import Message, MessageAttachment
+from O365.drive import Folder
 from io import BytesIO
 from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
 from src.utils.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
@@ -91,27 +92,14 @@ class EmailProcessor:
         self, pdf_reader: PyPDF2.PdfReader, metas: List[AttachmentMeta]
     ):
         logging.info("... uploading to sharepoint")
-        sharepoint = self.account.sharepoint()
-        site = sharepoint.get_site(SHAREPOINT_SITE_ID)
-        drive = site.get_default_document_library()
 
         for meta in metas:
-            self.upload_single_file_to_sharepoint(drive, pdf_reader, meta)
+            self.upload_single_file_to_sharepoint(pdf_reader, meta)
 
     def upload_single_file_to_sharepoint(
-        self, drive, pdf_reader: PyPDF2.PdfReader, meta: AttachmentMeta
+        self, pdf_reader: PyPDF2.PdfReader, meta: AttachmentMeta
     ):
-        year = str(meta.year)
-        folder_path = f"{SHAREPOINT_FOLDER_PATH}/{year}"
-        try:
-            parent = drive.get_item_by_path(SHAREPOINT_FOLDER_PATH)
-        except Exception:
-            raise RuntimeError(f"Base path does not exist: {SHAREPOINT_FOLDER_PATH}")
-        try:
-            folder = drive.get_item_by_path(folder_path)
-        except Exception:
-            folder = parent.create_child_folder(year)
-            logging.info(f"Created folder: {folder_path}")
+        folder = get_reservations_folder(year=meta.year)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
             temp_file.write(pdf_reader.stream.getvalue())
@@ -152,3 +140,22 @@ class EmailProcessor:
         output_buffer.seek(0)
 
         return PyPDF2.PdfReader(output_buffer)
+
+
+def get_reservations_folder(account: Account, year: int) -> Folder:
+    year_str = str(year)
+    sharepoint = account.sharepoint()
+    site = sharepoint.get_site(SHAREPOINT_SITE_ID)
+    drive = site.get_default_document_library()
+
+    folder_path = f"{SHAREPOINT_FOLDER_PATH}/{year_str}"
+    try:
+        parent = drive.get_item_by_path(SHAREPOINT_FOLDER_PATH)
+    except Exception:
+        raise RuntimeError(f"Base path does not exist: {SHAREPOINT_FOLDER_PATH}")
+    try:
+        folder = drive.get_item_by_path(folder_path)
+    except Exception:
+        folder = parent.create_child_folder(year_str)
+        logging.info(f"Created folder: {folder_path}")
+    return folder

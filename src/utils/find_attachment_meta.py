@@ -37,7 +37,9 @@ class FindAttachmentMeta:
 
         metas = []
         for date in dates:
-            clean_filename = f"Reservation_{date.year}_{date.month:02d}_{date.day:02d}_{org}_{booking_id}.pdf"
+            clean_filename = (
+                f"Reservation_{get_date_string_from_date(date)}_{org}_{booking_id}.pdf"
+            )
             clean_filename = clean_filename_for_sharepoint(clean_filename)
             metas.append(
                 AttachmentMeta(
@@ -173,3 +175,7 @@ def clean_filename_for_sharepoint(filename):
     cleaned = cleaned[:255]
 
     return cleaned
+
+
+def get_date_string_from_date(date: datetime) -> str:
+    return f"{date.year}_{date.month:02d}_{date.day:02d}"
