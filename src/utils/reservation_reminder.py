@@ -106,10 +106,11 @@ class ReservationReminder:
             "Hallo",
             f"Für den {datetime.strftime(date, '%A, %d.%m.%Y')}, liegen folgende Reservationen vor:",
             EMAIL_NEWLINE_STR,
+            "<ul>",
         ]
-        text_lines += reservations.keys()
+        text_lines += [f"<li>{key}</li>" for key in reservations.keys()]
+        text_lines += ["</ul>", EMAIL_NEWLINE_STR]
         text = EMAIL_NEWLINE_STR.join(text_lines)
-        text += EMAIL_NEWLINE_STR
         msg.body = text
         msg.to.add(DEFAULT_FROM_ADDRESS)
         for recipient in recipients:
