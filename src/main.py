@@ -86,7 +86,7 @@ def process_reminders(account: Account):
         current_weekday = datetime.now().weekday()
         targets_per_lead_day_number = {}
         for meta in subscription_metas:
-            if (current_weekday + meta.lead_days % 7) not in meta.weekdays:
+            if ((current_weekday + meta.lead_days) % 7) not in meta.weekdays:
                 continue
             if meta.lead_days not in targets_per_lead_day_number:
                 targets_per_lead_day_number[meta.lead_days] = []

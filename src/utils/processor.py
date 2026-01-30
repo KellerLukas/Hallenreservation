@@ -23,7 +23,7 @@ class EmailProcessor:
         )
 
     def process(self):
-        logging.info(f"Processing message {self.message.subject}")
+        logging.info(f"... starting process for message {self.message.subject}")
 
         attachments = self.get_attachments()
         for attachment in attachments:
