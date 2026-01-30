@@ -119,7 +119,7 @@ class ReservationReminder:
                 item.download(local_path)
                 msg.attachments.add(local_path)
 
-        logging.info("... sending email ...")
-        if not msg.send():
-            raise ValueError("failed to send email!")
-        logging.info("... email sent.")
+            logging.info("... sending email ...")
+            if not msg.send():
+                raise ValueError("failed to send email!")
+            logging.info("... email sent.")
