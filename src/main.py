@@ -48,9 +48,9 @@ def main():
     last_reminders_timestamp = load_last_processed_reminders_timestamp()
     now = datetime.now(timezone.utc)
     yesterday = (now - timedelta(days=1)).date()
-    nine_am = time(9, 0, tzinfo=timezone.utc)
+    today_nine_am = datetime.combine(now.date(), time(9, 0), tzinfo=timezone.utc)
 
-    if last_reminders_timestamp.date() <= yesterday and now.time() >= nine_am:
+    if last_reminders_timestamp.date() <= yesterday and now >= today_nine_am:
         process_reminders(account=account)
         dump_last_processed_reminders_timestamp(now)
 
