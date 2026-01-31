@@ -13,14 +13,20 @@ from src.utils.errors import NotAuthenticatedError
 from src.utils.config import (
     DEFAULT_FROM_ADDRESS,
     MONITORED_EMAIL_ADDRESS,
+    REMINDER_UPDATE_PREFIX,
     SUBSCRIPTION_META_FILE,
     SUPPORT_EMAIL_ADDRESS,
+    VERTEILER_PREFIX,
+    WORDPRESS_EMAIL,
 )
 from src.utils.setup_logging import setup_logging_to_file
 from src.utils.reservation_reminder import (
     EMAIL_NEWLINE_STR,
     ReservationReminder,
     load_subscriptions,
+)
+from src.utils.subscription_update_email_processor import (
+    SubscriptionUpdateEmailProcessor,
 )
 
 TIMESTAMP_FILE = "last_reminder_run.txt"
@@ -46,7 +52,6 @@ def main():
         raise NotAuthenticatedError("Not authenticated")
 
     process_incoming_emails(account=account)
-
     process_reminders(account=account)
 
     account.connection.refresh_token()
@@ -75,6 +80,22 @@ def send_alert_message_for_reminder(account: Account, issue: Exception) -> bool:
     return msg.send()
 
 
+def send_alert_message_for_subscription_update(
+    message: Message, issue: Exception
+) -> bool:
+    fwd = message.forward()
+    fwd.subject = f"HALLENRESERVATION SUBSCRIPTION UPDATE ERROR: {fwd.subject}"
+    fwd.body = (
+        str(issue)
+        + EMAIL_NEWLINE_STR
+        + traceback.format_exc()
+        + EMAIL_NEWLINE_STR
+        + fwd.body
+    )
+    fwd.to.add(SUPPORT_EMAIL_ADDRESS)
+    return fwd.send()
+
+
 def process_incoming_emails(account: Account):
     mailbox = account.mailbox(resource=MONITORED_EMAIL_ADDRESS)
     inbox = mailbox.inbox_folder()
@@ -88,11 +109,33 @@ def process_incoming_emails(account: Account):
             logging.info("... is reservation email")
             return process_incoming_reservation_email(account=account, message=message)
         if is_subscription_update_email(message):
-            logging
+            logging.info("... is subscription update email")
+            return process_subscription_update_email(account=account, message=message)
+        logging.info("... unknown email, skipping.")
+        message.mark_as_read()
+
 
 def is_reservation_email(message: Message) -> bool:
-    pass
-                
+    expected_subject_prefix = VERTEILER_PREFIX
+    expected_sender_address = DEFAULT_FROM_ADDRESS
+    if not message.subject.startswith(expected_subject_prefix):
+        return False
+
+    if expected_sender_address.lower() not in message.sender.address.lower():
+        return False
+    return True
+
+
+def is_subscription_update_email(message: Message) -> bool:
+    expected_subject_prefix = REMINDER_UPDATE_PREFIX
+    expected_sender_address = WORDPRESS_EMAIL
+    if not message.subject.startswith(expected_subject_prefix):
+        return False
+    if expected_sender_address.lower() not in message.sender.address.lower():
+        return False
+    return True
+
+
 def process_incoming_reservation_email(account: Account, message: Message):
     processor = ReservationEmailProcessor(message=message, account=account)
     try:
@@ -102,6 +145,23 @@ def process_incoming_reservation_email(account: Account, message: Message):
     except Exception as e:
         logging.info("... failed, sending alert message...")
         success = send_alert_message_for_upload(message=message, issue=e)
+        if success:
+            logging.info("... sending message successful. marking as read.")
+            message.mark_as_read()
+        else:
+            logging.info("... failed to send message. Keep as unread.")
+            message.mark_as_unread()
+
+
+def process_subscription_update_email(account: Account, message: Message):
+    processor = SubscriptionUpdateEmailProcessor(message=message, account=account)
+    try:
+        processor.process()
+        logging.info("... done, marking as read.")
+        message.mark_as_read()
+    except Exception as e:
+        logging.info("... failed, sending alert message...")
+        success = send_alert_message_for_subscription_update(message=message, issue=e)
         if success:
             logging.info("... sending message successful. marking as read.")
             message.mark_as_read()

@@ -10,20 +10,22 @@ from O365.drive import Folder
 from io import BytesIO
 from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
 from src.utils.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
+from src.utils.email_processor_base import EmailProcessorBase
 
 PAGE_NUMBER_REGEX = re.compile(r"Seite (\d+)/(\d+)")
 
 
-class ReservationEmailProcessor:
+class ReservationEmailProcessor(EmailProcessorBase):
     def __init__(self, message: Message, account: Account):
-        self.message = message
-        self.account = account
+        super().__init__(message, account)
         self.find_attachment_meta = FindAttachmentMeta(
             message_body=self.message.body, message_subject=self.message.subject
         )
 
     def process(self):
-        logging.info(f"... starting process for reservation message {self.message.subject}")
+        logging.info(
+            f"... starting process for reservation message {self.message.subject}"
+        )
 
         attachments = self.get_attachments()
         for attachment in attachments:

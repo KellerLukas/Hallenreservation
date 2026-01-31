@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
+import html
 import json
 import logging
 import os
@@ -12,6 +13,7 @@ from src.utils.find_attachment_meta import get_date_string_from_date
 from src.utils.reservation_email_processor import get_reservations_folder
 from src.utils.config import (
     DEFAULT_FROM_ADDRESS,
+    REMINDER_PREFIX,
     SUBSCRIPTION_MANAGE_URL,
     SUPPORT_EMAIL_ADDRESS,
 )
@@ -21,6 +23,7 @@ from src.utils.template.reminder_email_template import (
 from src.utils.template.reminder_email_template import (
     reservation_list_template as reminder_email_reservation_list_template,
 )
+
 EMAIL_NEWLINE_STR = "\n<br>\n"
 
 
@@ -117,9 +120,11 @@ class ReservationReminder:
         mailbox = self.account.mailbox(resource=DEFAULT_FROM_ADDRESS)
         msg = mailbox.new_message()
 
-        msg.subject = f"[TVW Reminder Hallen] Reservation vom {datetime.strftime(date, '%A, %d.%m.%Y')}"
+        msg.subject = f"{REMINDER_PREFIX} Reservation vom {datetime.strftime(date, '%A, %d.%m.%Y')}"
         reservation_rows = "\n".join(
-            reminder_email_reservation_list_template.format(filename=filename)
+            reminder_email_reservation_list_template.format(
+                filename=html.escape(filename)
+            )
             for filename in reservations.keys()
         )
         text = reminder_email_template.format(

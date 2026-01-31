@@ -17,7 +17,9 @@ class FixedAccount(Account):
             return consent_url, flow
 
         elif self.con.auth_flow_type in ("credentials", "certificate", "password"):
-            return self.con.request_token(None, requested_scopes=scopes, **kwargs)
+            return self.con.request_token(
+                None, requested_scopes=requested_scopes, **kwargs
+            )
         else:
             raise ValueError(
                 'Connection "auth_flow_type" must be "authorization", "public", "password", "certificate"'
