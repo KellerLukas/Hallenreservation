@@ -4,7 +4,6 @@ from pathlib import Path
 import json
 import logging
 import os
-import re
 from typing import Dict, List
 from O365 import Account
 from O365.drive import File
@@ -67,7 +66,7 @@ def dump_subscriptions(subs: Dict[SubscriptionMeta], path: str | Path) -> None:
 def load_subscriptions(path: str | Path) -> Dict[str, SubscriptionMeta]:
     path = Path(path)
     if not path.exists():
-        return []
+        return {}
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
     return {key: SubscriptionMeta.from_dict(value) for key, value in data.items()}
