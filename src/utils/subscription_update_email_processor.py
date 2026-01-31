@@ -33,10 +33,9 @@ class SubscriptionUpdateEmailProcessor(EmailProcessorBase):
                 logging.info(
                     f"... no existing subscription for {subscription_meta.email} to remove"
                 )
-            return
-
-        self.subscriptions[subscription_meta.email] = subscription_meta
-        logging.info(f"... updated subscription for {subscription_meta.email}")
+        else:
+            self.subscriptions[subscription_meta.email] = subscription_meta
+            logging.info(f"... updated subscription for {subscription_meta.email}")
         logging.info(f"... done processing message {self.message.subject}")
         dump_subscriptions(self.subscriptions, SUBSCRIPTION_META_FILE)
 
