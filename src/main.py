@@ -104,7 +104,9 @@ def process_incoming_emails(account: Account):
         query="isRead eq false", order_by="receivedDateTime desc"
     )
     for message in messages:
-        logging.info(f"Processing message {message.subject}...")
+        logging.info(
+            f"Processing message {message.subject} from {message.sender.address} ..."
+        )
         if is_reservation_email(message):
             logging.info("... is reservation email")
             return process_incoming_reservation_email(account=account, message=message)
