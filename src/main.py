@@ -109,12 +109,13 @@ def process_incoming_emails(account: Account):
         )
         if is_reservation_email(message):
             logging.info("... is reservation email")
-            return process_incoming_reservation_email(account=account, message=message)
-        if is_subscription_update_email(message):
+            process_incoming_reservation_email(account=account, message=message)
+        elif is_subscription_update_email(message):
             logging.info("... is subscription update email")
-            return process_subscription_update_email(account=account, message=message)
-        logging.info("... unknown email, skipping.")
-        message.mark_as_read()
+            process_subscription_update_email(account=account, message=message)
+        else:
+            logging.info("... unknown email, skipping.")
+            message.mark_as_read()
 
 
 def is_reservation_email(message: Message) -> bool:
