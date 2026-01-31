@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
+import html
 import json
 import logging
 import os
@@ -9,9 +10,10 @@ from O365 import Account
 from O365.drive import File
 from tempfile import TemporaryDirectory
 from src.utils.find_attachment_meta import get_date_string_from_date
-from src.utils.processor import get_reservations_folder
+from src.utils.reservation_email_processor import get_reservations_folder
 from src.utils.config import (
     DEFAULT_FROM_ADDRESS,
+    REMINDER_PREFIX,
     SUBSCRIPTION_MANAGE_URL,
     SUPPORT_EMAIL_ADDRESS,
 )
@@ -118,9 +120,11 @@ class ReservationReminder:
         mailbox = self.account.mailbox(resource=DEFAULT_FROM_ADDRESS)
         msg = mailbox.new_message()
 
-        msg.subject = f"[TVW Reminder Hallen] Reservation vom {datetime.strftime(date, '%A, %d.%m.%Y')}"
+        msg.subject = f"{REMINDER_PREFIX} Reservation vom {datetime.strftime(date, '%A, %d.%m.%Y')}"
         reservation_rows = "\n".join(
-            reminder_email_reservation_list_template.format(filename=filename)
+            reminder_email_reservation_list_template.format(
+                filename=html.escape(filename)
+            )
             for filename in reservations.keys()
         )
         text = reminder_email_template.format(
@@ -132,7 +136,6 @@ class ReservationReminder:
         )
 
         msg.body = text
-        msg.to.add(DEFAULT_FROM_ADDRESS)
         msg.reply_to.add(SUPPORT_EMAIL_ADDRESS)
         for recipient in recipients:
             msg.bcc.add(recipient)
