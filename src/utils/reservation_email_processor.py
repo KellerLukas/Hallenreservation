@@ -39,7 +39,7 @@ class ReservationEmailProcessor(EmailProcessorBase):
         logging.info(f"... done processing message {self.message.subject}")
 
     def process_attachment(self, attachment: MessageAttachment):
-        logging.info(f"processing attachment {attachment.name}...")
+        logging.info(f"... processing attachment {attachment.name}...")
         if not attachment.name.endswith(".pdf"):
             logging.info("... not a pdf")
             return None
@@ -53,7 +53,7 @@ class ReservationEmailProcessor(EmailProcessorBase):
                 pdf_reader=pdf_reader, n=cutoff_page_num
             )
         else:
-            logging.warning("No cutoff page number detected!")
+            logging.warning("... no cutoff page number detected!")
         pdf_text = self.read_pdf(pdf_reader)
 
         metas = self.find_attachment_meta.find(
@@ -78,8 +78,7 @@ class ReservationEmailProcessor(EmailProcessorBase):
             return None
         if detected_current_page != 0:
             logging.warning(
-                f"Page number mismatch: assumed current page {detected_current_page}, "
-                f"actual page 0"
+                f"... page number mismatch: assumed current page {detected_current_page}, actual page 0"
             )
             return None
         return detected_expected_num_of_pages
@@ -118,7 +117,7 @@ class ReservationEmailProcessor(EmailProcessorBase):
                     break
                 suffix += 1
         new_file = folder.upload_file(temp_file_path, meta.clean_filename)
-        logging.info(f"Uploaded file: {new_file.name}")
+        logging.info(f"... uploaded file: {new_file.name}")
 
     @staticmethod
     def extract_page_number_from_pdf_text(
@@ -159,5 +158,5 @@ def get_reservations_folder(account: Account, year: int) -> Folder:
         folder = drive.get_item_by_path(folder_path)
     except Exception:
         folder = parent.create_child_folder(year_str)
-        logging.info(f"Created folder: {folder_path}")
+        logging.info(f"... created folder: {folder_path}")
     return folder
