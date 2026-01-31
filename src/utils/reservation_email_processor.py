@@ -14,7 +14,7 @@ from src.utils.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
 PAGE_NUMBER_REGEX = re.compile(r"Seite (\d+)/(\d+)")
 
 
-class EmailProcessor:
+class ReservationEmailProcessor:
     def __init__(self, message: Message, account: Account):
         self.message = message
         self.account = account
@@ -23,7 +23,7 @@ class EmailProcessor:
         )
 
     def process(self):
-        logging.info(f"... starting process for message {self.message.subject}")
+        logging.info(f"... starting process for reservation message {self.message.subject}")
 
         attachments = self.get_attachments()
         for attachment in attachments:

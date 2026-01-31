@@ -8,7 +8,7 @@ from O365.mailbox import Message
 from O365.account import Account
 from src.utils.credentials import get_o365_credentials_from_env
 from src.utils.fixed_o365_account import FixedAccount
-from src.utils.processor import EmailProcessor
+from src.utils.reservation_email_processor import ReservationEmailProcessor
 from src.utils.errors import NotAuthenticatedError
 from src.utils.config import (
     DEFAULT_FROM_ADDRESS,
@@ -45,7 +45,7 @@ def main():
         logging.error("Not authenticated")
         raise NotAuthenticatedError("Not authenticated")
 
-    process_incoming_reservations(account=account)
+    process_incoming_emails(account=account)
 
     last_reminders_timestamp = load_last_processed_reminders_timestamp()
     now = datetime.now(ZONEINFO)
@@ -82,7 +82,7 @@ def send_alert_message_for_reminder(account: Account, issue: Exception) -> bool:
     return msg.send()
 
 
-def process_incoming_reservations(account: Account):
+def process_incoming_emails(account: Account):
     mailbox = account.mailbox(resource=MONITORED_EMAIL_ADDRESS)
     inbox = mailbox.inbox_folder()
 
@@ -91,20 +91,30 @@ def process_incoming_reservations(account: Account):
     )
     for message in messages:
         logging.info(f"Processing message {message.subject}...")
-        processor = EmailProcessor(message=message, account=account)
-        try:
-            processor.process()
-            logging.info("... done, marking as read.")
+        if is_reservation_email(message):
+            logging.info("... is reservation email")
+            return process_incoming_reservation_email(account=account, message=message)
+        if is_subscription_update_email(message):
+            logging
+
+def is_reservation_email(message: Message) -> bool:
+    pass
+                
+def process_incoming_reservation_email(account: Account, message: Message):
+    processor = ReservationEmailProcessor(message=message, account=account)
+    try:
+        processor.process()
+        logging.info("... done, marking as read.")
+        message.mark_as_read()
+    except Exception as e:
+        logging.info("... failed, sending alert message...")
+        success = send_alert_message_for_upload(message=message, issue=e)
+        if success:
+            logging.info("... sending message successful. marking as read.")
             message.mark_as_read()
-        except Exception as e:
-            logging.info("... failed, sending alert message...")
-            success = send_alert_message_for_upload(message=message, issue=e)
-            if success:
-                logging.info("... sending message successful. marking as read.")
-                message.mark_as_read()
-            else:
-                logging.info("... failed to send message. Keep as unread.")
-                message.mark_as_unread()
+        else:
+            logging.info("... failed to send message. Keep as unread.")
+            message.mark_as_unread()
 
 
 def process_reminders(account: Account):

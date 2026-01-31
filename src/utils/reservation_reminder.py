@@ -9,7 +9,7 @@ from O365 import Account
 from O365.drive import File
 from tempfile import TemporaryDirectory
 from src.utils.find_attachment_meta import get_date_string_from_date
-from src.utils.processor import get_reservations_folder
+from src.utils.reservation_email_processor import get_reservations_folder
 from src.utils.config import DEFAULT_FROM_ADDRESS
 
 EMAIL_NEWLINE_STR = "\n<br>\n"
