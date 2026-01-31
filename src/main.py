@@ -47,14 +47,7 @@ def main():
 
     process_incoming_emails(account=account)
 
-    last_reminders_timestamp = load_last_processed_reminders_timestamp()
-    now = datetime.now(ZONEINFO)
-    yesterday = (now - timedelta(days=1)).date()
-    today_nine_am = datetime.combine(now.date(), time(9, 0), tzinfo=ZONEINFO)
-
-    if last_reminders_timestamp.date() <= yesterday and now >= today_nine_am:
-        process_reminders(account=account)
-        dump_last_processed_reminders_timestamp(now)
+    process_reminders(account=account)
 
     account.connection.refresh_token()
 
@@ -118,12 +111,20 @@ def process_incoming_reservation_email(account: Account, message: Message):
 
 
 def process_reminders(account: Account):
+    last_reminders_timestamp = load_last_processed_reminders_timestamp()
+    now = datetime.now(ZONEINFO)
+    yesterday = (now - timedelta(days=1)).date()
+    today_nine_am = datetime.combine(now.date(), time(9, 0), tzinfo=ZONEINFO)
+
+    if not (last_reminders_timestamp.date() <= yesterday and now >= today_nine_am):
+        return
+
     logging.info("Processing reminders...")
     try:
         subscription_metas = load_subscriptions(SUBSCRIPTION_META_FILE)
         current_weekday = datetime.now().weekday()
         targets_per_lead_day_number = {}
-        for meta in subscription_metas:
+        for meta in subscription_metas.values():
             if ((current_weekday + meta.lead_days) % 7) not in meta.weekdays:
                 continue
             if meta.lead_days not in targets_per_lead_day_number:
@@ -144,6 +145,7 @@ def process_reminders(account: Account):
             )
 
         logging.info("... done processing reminders.")
+        dump_last_processed_reminders_timestamp(now)
     except Exception as e:
         logging.info("... failed, sending alert message...")
         success = send_alert_message_for_reminder(account=account, issue=e)
