@@ -38,7 +38,7 @@ template = """
 
 reservation_list_template = """
     <tr>
-      <td style="padding:4px 0;">
+      <td style="padding:4px 0; font-size:14px;">
         • {filename}
       </td>
     </tr>
