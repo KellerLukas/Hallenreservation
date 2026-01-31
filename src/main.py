@@ -1,7 +1,8 @@
 import logging
 import traceback
 import locale
-from datetime import datetime, timezone, timedelta, time
+from datetime import datetime, timedelta, time
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from O365.mailbox import Message
 from O365.account import Account
@@ -25,6 +26,7 @@ from src.utils.reservation_reminder import (
 TIMESTAMP_FILE = "last_reminder_run.txt"
 
 locale.setlocale(locale.LC_TIME, "de_CH.UTF-8")
+ZONEINFO = ZoneInfo("Europe/Zurich")
 
 # Note: may need to install this and reboot
 # sudo sed -i 's/^# *\(de_CH.UTF-8 UTF-8\)/\1/' /etc/locale.gen
@@ -46,9 +48,9 @@ def main():
     process_incoming_reservations(account=account)
 
     last_reminders_timestamp = load_last_processed_reminders_timestamp()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(ZONEINFO)
     yesterday = (now - timedelta(days=1)).date()
-    today_nine_am = datetime.combine(now.date(), time(9, 0), tzinfo=timezone.utc)
+    today_nine_am = datetime.combine(now.date(), time(9, 0), tzinfo=ZONEINFO)
 
     if last_reminders_timestamp.date() <= yesterday and now >= today_nine_am:
         process_reminders(account=account)
@@ -145,7 +147,7 @@ def dump_last_processed_reminders_timestamp(ts: datetime):
     path = Path(TIMESTAMP_FILE)
 
     if ts.tzinfo is None:
-        ts = ts.replace(tzinfo=timezone.utc)
+        ts = ts.replace(tzinfo=ZONEINFO)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(ts.isoformat(), encoding="utf-8")
@@ -156,7 +158,7 @@ def load_last_processed_reminders_timestamp() -> datetime:
 
     if not path.exists():
         # First run: pretend last run was long ago
-        return datetime.min.replace(tzinfo=timezone.utc)
+        return datetime.min.replace(tzinfo=ZONEINFO)
 
     raw = path.read_text(encoding="utf-8").strip()
     try:

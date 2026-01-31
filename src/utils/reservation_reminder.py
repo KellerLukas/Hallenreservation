@@ -47,19 +47,19 @@ class SubscriptionMeta:
         return cls.from_dict(data)
 
 
-def dump_subscriptions(subs: List[SubscriptionMeta], path: str | Path) -> None:
+def dump_subscriptions(subs: Dict[SubscriptionMeta], path: str | Path) -> None:
     path = Path(path)
     with path.open("w", encoding="utf-8") as f:
-        json.dump([s.to_dict() for s in subs], f, indent=2)
+        json.dump({key: value.to_dict() for key, value in subs.items()}, f, indent=2)
 
 
-def load_subscriptions(path: str | Path) -> List[SubscriptionMeta]:
+def load_subscriptions(path: str | Path) -> Dict[str, SubscriptionMeta]:
     path = Path(path)
     if not path.exists():
         return []
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
-    return [SubscriptionMeta.from_dict(item) for item in data]
+    return {key: SubscriptionMeta.from_dict(value) for key, value in data.items()}
 
 
 class ReservationReminder:
