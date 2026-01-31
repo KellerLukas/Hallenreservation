@@ -10,9 +10,9 @@ template = """
         In <strong>{days}</strong> Tagen am <strong>{date}</strong> liegen folgende Reservationen vor:
       </p>
 
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0;">
+      <ul style="margin:10px 0; padding-left:20px;">
         {reservations}
-      </table>
+      </ul>
 
       <p>
         Du erhältst diese Nachricht, weil du den Hallenreservation-Reminder aktiviert hast.
@@ -37,9 +37,7 @@ template = """
 """
 
 reservation_list_template = """
-    <tr>
-      <td style="padding:4px 0 4px 20px; font-size:14px;">
-        • {filename}
-      </td>
-    </tr>
+  <li style="padding:4px 0; font-size:14px;">
+    {filename}
+  </li>
 """
