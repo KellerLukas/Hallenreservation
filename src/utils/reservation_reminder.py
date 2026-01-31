@@ -136,7 +136,6 @@ class ReservationReminder:
         )
 
         msg.body = text
-        msg.to.add(DEFAULT_FROM_ADDRESS)
         msg.reply_to.add(SUPPORT_EMAIL_ADDRESS)
         for recipient in recipients:
             msg.bcc.add(recipient)
