@@ -4,13 +4,16 @@ from pathlib import Path
 import json
 import logging
 import os
+import re
 from typing import Dict, List
 from O365 import Account
 from O365.drive import File
 from tempfile import TemporaryDirectory
 from src.utils.find_attachment_meta import get_date_string_from_date
 from src.utils.processor import get_reservations_folder
-from src.utils.config import DEFAULT_FROM_ADDRESS
+from src.utils.config import DEFAULT_FROM_ADDRESS, SUPPORT_EMAIL_ADDRESS
+from src.utils.template.reminder_email_template import template as reminder_email_template
+from src.utils.template.reminder_email_template import reservation_list_template as reminder_email_reservation_list_template
 
 EMAIL_NEWLINE_STR = "\n<br>\n"
 
@@ -80,7 +83,7 @@ class ReservationReminder:
             f"... found {len(reservations_on_date)} reservations on date {target_day.strftime('%d.%m.%Y')}"
         )
         return self.send_reminder_email(
-            reservations=reservations_on_date, date=target_day, recipients=recipients
+            reservations=reservations_on_date, date=target_day, recipients=recipients, n=n
         )
 
     def get_reservations_on_date(self, date: datetime) -> Dict[str, File]:
@@ -95,23 +98,19 @@ class ReservationReminder:
         return matching_files
 
     def send_reminder_email(
-        self, reservations: Dict[str, File], date: datetime, recipients: List[str]
+        self, reservations: Dict[str, File], date: datetime, recipients: List[str], n: int
     ):
         logging.info("... sending email ...")
         mailbox = self.account.mailbox(resource=DEFAULT_FROM_ADDRESS)
         msg = mailbox.new_message()
 
         msg.subject = f"[TVW Reminder Hallen] Reservation vom {datetime.strftime(date, '%A, %d.%m.%Y')}"
-        text_lines = [
-            "Hallo",
-            f"Für den {datetime.strftime(date, '%A, %d.%m.%Y')}, liegen folgende Reservationen vor:",
-            "<ul>",
-        ]
-        text_lines += [f"<li>{key}</li>" for key in reservations.keys()]
-        text_lines += ["</ul>", EMAIL_NEWLINE_STR]
-        text = EMAIL_NEWLINE_STR.join(text_lines)
+        reservation_rows = "\n".join(reminder_email_reservation_list_template.format(filename=filename) for filename in reservations.keys())
+        text = reminder_email_template.format(days=n, date=datetime.strftime(date, '%A, %d.%m.%Y'), reservations=reservation_rows)
+
         msg.body = text
         msg.to.add(DEFAULT_FROM_ADDRESS)
+        msg.reply_to.add(SUPPORT_EMAIL_ADDRESS)
         for recipient in recipients:
             msg.bcc.add(recipient)
 
