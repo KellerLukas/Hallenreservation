@@ -1,13 +1,12 @@
 import base64
 import re
 from typing import List, Optional, Tuple
-import PyPDF2
+import fitz
 import tempfile
 import logging
 from O365 import Account
 from O365.message import Message, MessageAttachment
 from O365.drive import Folder
-from io import BytesIO
 from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
 from src.utils.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
 from src.utils.email_processor_base import EmailProcessorBase
@@ -45,32 +44,27 @@ class ReservationEmailProcessor(EmailProcessorBase):
             return None
 
         pdf_content = base64.b64decode(attachment.content)
-        pdf_buffer = BytesIO(pdf_content)
-        pdf_reader = PyPDF2.PdfReader(pdf_buffer)
-        cutoff_page_num = self.determine_pdf_cutoff(pdf_reader=pdf_reader)
+        pdf_doc = fitz.open(stream=pdf_content, filetype="pdf")
+        cutoff_page_num = self.determine_pdf_cutoff(pdf_doc=pdf_doc)
         if cutoff_page_num:
-            pdf_reader = self.cut_pdf_reader_after_page_n(
-                pdf_reader=pdf_reader, n=cutoff_page_num
-            )
+            pdf_doc = self.cut_pdf_after_page_n(pdf_doc=pdf_doc, n=cutoff_page_num)
         else:
             logging.warning("... no cutoff page number detected!")
-        pdf_text = self.read_pdf(pdf_reader)
+        pdf_text = self.read_pdf(pdf_doc)
 
-        metas = self.find_attachment_meta.find(
-            attachment_name=attachment.name, attachment_content=pdf_text
-        )
-        self.upload_to_sharepoint(pdf_reader=pdf_reader, metas=metas)
+        metas = self.find_attachment_meta.find(attachment_content=pdf_text)
+        self.upload_to_sharepoint(pdf_doc=pdf_doc, metas=metas)
 
-    def read_pdf(self, reader: PyPDF2.PdfReader) -> str:
+    def read_pdf(self, doc: fitz.Document) -> str:
         pdf_text = ""
-        for page in reader.pages:
-            page_text = page.extract_text()
+        for page in doc:
+            page_text = page.get_text()
             pdf_text += page_text
         return pdf_text
 
-    def determine_pdf_cutoff(self, pdf_reader: PyPDF2.PdfReader) -> Optional[int]:
-        first_page = pdf_reader.pages[0]
-        page_text = first_page.extract_text()
+    def determine_pdf_cutoff(self, pdf_doc: fitz.Document) -> Optional[int]:
+        first_page = pdf_doc[0]
+        page_text = first_page.get_text()
         detected_current_page, detected_expected_num_of_pages = (
             self.extract_page_number_from_pdf_text(page_text)
         )
@@ -89,21 +83,19 @@ class ReservationEmailProcessor(EmailProcessorBase):
         self.message.attachments.download_attachments()
         return [att for att in self.message.attachments]
 
-    def upload_to_sharepoint(
-        self, pdf_reader: PyPDF2.PdfReader, metas: List[AttachmentMeta]
-    ):
+    def upload_to_sharepoint(self, pdf_doc: fitz.Document, metas: List[AttachmentMeta]):
         logging.info("... uploading to sharepoint")
 
         for meta in metas:
-            self.upload_single_file_to_sharepoint(pdf_reader, meta)
+            self.upload_single_file_to_sharepoint(pdf_doc, meta)
 
     def upload_single_file_to_sharepoint(
-        self, pdf_reader: PyPDF2.PdfReader, meta: AttachmentMeta
+        self, pdf_doc: fitz.Document, meta: AttachmentMeta
     ):
         folder = get_reservations_folder(account=self.account, year=meta.year)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-            temp_file.write(pdf_reader.stream.getvalue())
+            temp_file.write(pdf_doc.tobytes())
             temp_file_path = temp_file.name
 
         existing_files = [item.name for item in folder.get_items()]
@@ -129,18 +121,10 @@ class ReservationEmailProcessor(EmailProcessorBase):
         return None, None
 
     @staticmethod
-    def cut_pdf_reader_after_page_n(
-        pdf_reader: PyPDF2.PdfReader, n: int
-    ) -> PyPDF2.PdfReader:
-        pdf_writer = PyPDF2.PdfWriter()
-        for page_num in range(min(n, len(pdf_reader.pages))):
-            pdf_writer.add_page(pdf_reader.pages[page_num])
-
-        output_buffer = BytesIO()
-        pdf_writer.write(output_buffer)
-        output_buffer.seek(0)
-
-        return PyPDF2.PdfReader(output_buffer)
+    def cut_pdf_after_page_n(pdf_doc: fitz.Document, n: int) -> fitz.Document:
+        new_doc = fitz.open()
+        new_doc.insert_pdf(pdf_doc, from_page=0, to_page=n - 1)
+        return new_doc
 
 
 def get_reservations_folder(account: Account, year: int) -> Folder:

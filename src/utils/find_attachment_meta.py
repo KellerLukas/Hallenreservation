@@ -28,9 +28,7 @@ class FindAttachmentMeta:
         self.message_subject = message_subject
         self.client = OpenAI(api_key=self.__get_key())
 
-    def find(
-        self, attachment_name: str, attachment_content: str
-    ) -> List[AttachmentMeta]:
+    def find(self, attachment_content: str) -> List[AttachmentMeta]:
         booking_id = self._find_booking_id(attachment_content)
         org = self._find_organization(attachment_content, booking_id=booking_id)
         dates = self._find_dates(attachment_content)
