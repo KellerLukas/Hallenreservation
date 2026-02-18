@@ -1,6 +1,6 @@
 import base64
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 import fitz
 import tempfile
 import logging
@@ -8,7 +8,11 @@ from O365 import Account
 from O365.message import Message, MessageAttachment
 from O365.drive import Folder
 from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
-from src.utils.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
+from src.utils.config import (
+    SHAREPOINT_FOLDER_PATH,
+    SHAREPOINT_FOLDER_PATH_REDACTED,
+    SHAREPOINT_SITE_ID,
+)
 from src.utils.email_processor_base import EmailProcessorBase
 
 PAGE_NUMBER_REGEX = re.compile(r"Seite (\d+)/(\d+)")
@@ -50,10 +54,15 @@ class ReservationEmailProcessor(EmailProcessorBase):
             pdf_doc = self.cut_pdf_after_page_n(pdf_doc=pdf_doc, n=cutoff_page_num)
         else:
             logging.warning("... no cutoff page number detected!")
-        pdf_text = self.read_pdf(pdf_doc)
 
+        pdf_text = self.read_pdf(pdf_doc)
         metas = self.find_attachment_meta.find(attachment_content=pdf_text)
-        self.upload_to_sharepoint(pdf_doc=pdf_doc, metas=metas)
+        self.upload_to_sharepoint(pdf_doc=pdf_doc, metas=metas, redacted=False)
+        sensitive_content = metas[0].sensitive_content if metas else set()
+        pdf_doc_redacted = self.redact_pdf(
+            pdf_doc=pdf_doc, strings_to_redact=sensitive_content
+        )
+        self.upload_to_sharepoint(pdf_doc=pdf_doc_redacted, metas=metas, redacted=True)
 
     def read_pdf(self, doc: fitz.Document) -> str:
         pdf_text = ""
@@ -77,22 +86,43 @@ class ReservationEmailProcessor(EmailProcessorBase):
             return None
         return detected_expected_num_of_pages
 
+    def redact_pdf(
+        self, pdf_doc: fitz.Document, strings_to_redact: Set[str]
+    ) -> fitz.Document:
+        redacted_doc = fitz.open()
+        redacted_doc.insert_pdf(pdf_doc)
+
+        for page in redacted_doc:
+            for str_to_redact in strings_to_redact:
+                text_instances = page.search_for(str_to_redact)
+                for inst in text_instances:
+                    page.add_redact_annot(
+                        inst, fill=(0, 0, 0)
+                    )  # RGB (0,0,0) = black bar
+            page.apply_redactions()
+        return redacted_doc
+
     def get_attachments(self) -> list[MessageAttachment]:
         if not self.message.has_attachments:
             return []
         self.message.attachments.download_attachments()
         return [att for att in self.message.attachments]
 
-    def upload_to_sharepoint(self, pdf_doc: fitz.Document, metas: List[AttachmentMeta]):
-        logging.info("... uploading to sharepoint")
-
+    def upload_to_sharepoint(
+        self, pdf_doc: fitz.Document, metas: List[AttachmentMeta], redacted: bool
+    ):
+        logging.info(
+            f"... uploading to sharepoint {'in redacted form' if redacted else ''}..."
+        )
         for meta in metas:
-            self.upload_single_file_to_sharepoint(pdf_doc, meta)
+            self.upload_single_file_to_sharepoint(pdf_doc, meta, redacted)
 
     def upload_single_file_to_sharepoint(
-        self, pdf_doc: fitz.Document, meta: AttachmentMeta
+        self, pdf_doc: fitz.Document, meta: AttachmentMeta, redacted: bool
     ):
-        folder = get_reservations_folder(account=self.account, year=meta.year)
+        folder = get_reservations_folder(
+            account=self.account, year=meta.year, redacted=redacted
+        )
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
             temp_file.write(pdf_doc.tobytes())
@@ -109,7 +139,7 @@ class ReservationEmailProcessor(EmailProcessorBase):
                     break
                 suffix += 1
         new_file = folder.upload_file(temp_file_path, meta.clean_filename)
-        logging.info(f"... uploaded file: {new_file.name}")
+        logging.info(f"... uploaded file: {new_file.name} to folder: {folder.name}")
 
     @staticmethod
     def extract_page_number_from_pdf_text(
@@ -127,17 +157,20 @@ class ReservationEmailProcessor(EmailProcessorBase):
         return new_doc
 
 
-def get_reservations_folder(account: Account, year: int) -> Folder:
+def get_reservations_folder(account: Account, year: int, redacted: bool) -> Folder:
     year_str = str(year)
     sharepoint = account.sharepoint()
     site = sharepoint.get_site(SHAREPOINT_SITE_ID)
     drive = site.get_default_document_library()
 
-    folder_path = f"{SHAREPOINT_FOLDER_PATH}/{year_str}"
+    base_folder = (
+        SHAREPOINT_FOLDER_PATH_REDACTED if redacted else SHAREPOINT_FOLDER_PATH
+    )
+    folder_path = f"{base_folder}/{year_str}"
     try:
-        parent = drive.get_item_by_path(SHAREPOINT_FOLDER_PATH)
+        parent = drive.get_item_by_path(base_folder)
     except Exception:
-        raise RuntimeError(f"Base path does not exist: {SHAREPOINT_FOLDER_PATH}")
+        raise RuntimeError(f"Base path does not exist: {base_folder}")
     try:
         folder = drive.get_item_by_path(folder_path)
     except Exception:

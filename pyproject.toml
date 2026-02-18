@@ -1,16 +1,16 @@
 [project]
-name = "qr_bill"
+name = "Hallenreservation"
 version = "0.0.1"
-description = "Create qr bills"
+description = "Hallenreservation processing system"
 authors = []
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.10.4",
     "openai>=1.58.1",
     "watchdog>=6.0.0",
     "ruff>=0.8.6",
     "o365>=2.0.38",
-    "pymupdf>=1.27.1",
+    "pymupdf",
 ]
 
 [dependency-groups]
