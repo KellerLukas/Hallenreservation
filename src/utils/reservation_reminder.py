@@ -59,7 +59,7 @@ class SubscriptionMeta:
         return cls.from_dict(data)
 
 
-def dump_subscriptions(subs: Dict[SubscriptionMeta], path: str | Path) -> None:
+def dump_subscriptions(subs: Dict[str, SubscriptionMeta], path: str | Path) -> None:
     path = Path(path)
     with path.open("w", encoding="utf-8") as f:
         json.dump({key: value.to_dict() for key, value in subs.items()}, f, indent=2)
