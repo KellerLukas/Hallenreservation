@@ -1,4 +1,5 @@
 import base64
+import os
 import re
 from typing import List, Optional, Set, Tuple
 import fitz
@@ -6,7 +7,8 @@ import tempfile
 import logging
 from O365 import Account
 from O365.message import Message, MessageAttachment
-from O365.drive import Folder
+from O365.drive import Folder, File
+from tempfile import TemporaryDirectory
 from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
 from src.utils.config import (
     SHAREPOINT_FOLDER_PATH,
@@ -21,9 +23,7 @@ PAGE_NUMBER_REGEX = re.compile(r"Seite (\d+)/(\d+)")
 class ReservationEmailProcessor(EmailProcessorBase):
     def __init__(self, message: Message, account: Account):
         super().__init__(message, account)
-        self.find_attachment_meta = FindAttachmentMeta(
-            message_body=self.message.body, message_subject=self.message.subject
-        )
+        self.find_attachment_meta = FindAttachmentMeta()
 
     def process(self):
         logging.info(
@@ -128,18 +128,57 @@ class ReservationEmailProcessor(EmailProcessorBase):
             temp_file.write(pdf_doc.tobytes())
             temp_file_path = temp_file.name
 
-        existing_files = [item.name for item in folder.get_items()]
-        if meta.clean_filename in existing_files:
-            base_name, ext = meta.clean_filename.rsplit(".", 1)
-            suffix = 1
-            while True:
-                new_filename = f"{base_name}_{suffix}.{ext}"
-                if new_filename not in existing_files:
-                    meta.clean_filename = new_filename
-                    break
-                suffix += 1
-        new_file = folder.upload_file(temp_file_path, meta.clean_filename)
-        logging.info(f"... uploaded file: {new_file.name} to folder: {folder.name}")
+        try:
+            existing_files = [item for item in folder.get_items()]
+            if meta.clean_filename in {item.name for item in existing_files}:
+                base_name, ext = meta.clean_filename.rsplit(".", 1)
+                existing_files_matching_base_name = [
+                    item for item in existing_files if item.name.startswith(base_name)
+                ]
+                for file in existing_files_matching_base_name:
+                    if self._sp_file_identical_to_local(file, temp_file_path):
+                        logging.info(
+                            f"... file with identical content already exists: {file.name}, skipping upload"
+                        )
+                        return
+                existing_suffixes = [
+                    name[len(base_name) + 1 : -len(ext) - 1]
+                    for name in {
+                        item.name for item in existing_files_matching_base_name
+                    }
+                ]
+                if "" in existing_suffixes:
+                    existing_suffixes.remove("")
+                existing_suffixes = [int(suffix) for suffix in existing_suffixes]
+                new_suffix = max(existing_suffixes) + 1 if existing_suffixes else 1
+                meta.clean_filename = f"{base_name}_{new_suffix}.{ext}"
+            new_file = folder.upload_file(temp_file_path, meta.clean_filename)
+            logging.info(f"... uploaded file: {new_file.name} to folder: {folder.name}")
+        finally:
+            try:
+                os.remove(temp_file_path)
+            except FileNotFoundError:
+                pass
+            except OSError as cleanup_error:
+                logging.warning(
+                    f"... failed to delete temporary file {temp_file_path}: {cleanup_error}"
+                )
+
+    def _sp_file_identical_to_local(self, sp_file: File, local_file_path: str) -> bool:
+        with TemporaryDirectory() as td:
+            sp_file.download(to_path=td, name=sp_file.name)
+            sp_file_path = os.path.join(td, sp_file.name)
+            return self._pdf_text_signature(
+                local_file_path
+            ) == self._pdf_text_signature(sp_file_path)
+
+    @staticmethod
+    def _pdf_text_signature(file_path: str) -> str:
+        pages: List[str] = []
+        with fitz.open(file_path) as doc:
+            for page in doc:
+                pages.append(" ".join(page.get_text("text").split()))
+        return f"{len(pages)}|" + "\f".join(pages)
 
     @staticmethod
     def extract_page_number_from_pdf_text(

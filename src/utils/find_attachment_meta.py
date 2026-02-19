@@ -1,6 +1,7 @@
 from openai import OpenAI
 import logging
 import re
+import unicodedata
 from typing import List, Optional, Set
 from datetime import datetime
 from pydantic import BaseModel
@@ -26,9 +27,7 @@ class AttachmentMeta(BaseModel):
 
 
 class FindAttachmentMeta:
-    def __init__(self, message_body: str, message_subject: str) -> None:
-        self.message_body = message_body
-        self.message_subject = message_subject
+    def __init__(self) -> None:
         self._client = None
 
     @property
@@ -195,6 +194,9 @@ class FindAttachmentMeta:
         return [response]
 
     def _setup_prompt(self, attachment_name: str, attachment_content: str) -> str:
+        raise DeprecationWarning(
+            "This method is deprecated and should not be used anymore."
+        )
         template = attachment_prompt_template
         prompt = template.format(
             mail_body=self.message_body,
@@ -227,11 +229,16 @@ def clean_filename_for_sharepoint(filename):
     Returns:
         str: The cleaned filename
     """
+    cleaned = unicodedata.normalize("NFKC", filename)
+
+    # Remove control characters (including null bytes)
+    cleaned = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", cleaned)
+
     # Characters not allowed in SharePoint filenames
     invalid_chars = r'[<>:"/\\|?*]'
 
     # Remove invalid characters
-    cleaned = re.sub(invalid_chars, "", filename)
+    cleaned = re.sub(invalid_chars, "", cleaned)
 
     # Remove leading/trailing spaces and periods
     cleaned = cleaned.strip(". ")
