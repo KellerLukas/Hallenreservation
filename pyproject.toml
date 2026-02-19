@@ -3,18 +3,19 @@ name = "Hallenreservation"
 version = "0.0.1"
 description = "Hallenreservation processing system"
 authors = []
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.10.4",
     "openai>=1.58.1",
     "watchdog>=6.0.0",
     "ruff>=0.8.6",
     "o365>=2.0.38",
-    "pymupdf",
 ]
-
+#to install pymupdf on raspberry pi, you need to run 
+# python3.11 -m pip install --only-binary=:all: --extra-index-url https://www.piwheels.org/simple pymupdf
 [dependency-groups]
 dev = [
+    "pymupdf", #added as dev dep because it needs to be installed separately on raspberry pi
     "pytest",
     "jupyter",
     "ipynb",
