@@ -74,7 +74,7 @@ class SubscriptionManager:
                 f"Could not access SharePoint folder at path {SHAREPOINT_FOLDER_PATH}: {e}"
             )
         target_file_name = "subscription_metas.txt"
-        pretty_content = self.pretty_print_subscriptions()
+        pretty_content = self._get_subscription_meta_as_pretty_string()
         with tempfile.TemporaryDirectory() as temp_dir:
             upload_path = Path(temp_dir) / target_file_name
             upload_path.write_text(pretty_content, encoding="utf-8")
@@ -156,7 +156,11 @@ class SubscriptionManager:
             if target_weekday in meta.weekdays and meta.reminder_lead_days == n
         ]
 
-    def pretty_print_subscriptions(self) -> str:
+    def pretty_print_subscriptions(self) -> None:
+        result = self._get_subscription_meta_as_pretty_string()
+        print(result, end="")
+    
+    def _get_subscription_meta_as_pretty_string(self) -> str:
         lines: List[str] = []
         for email, meta in self.subscription_metas.items():
             weekday_names = ", ".join(WEEKDAY_NAMES_DE[day] for day in meta.weekdays)
@@ -171,5 +175,4 @@ class SubscriptionManager:
             )
 
         result = "\n".join(lines).rstrip() + "\n"
-        print(result, end="")
         return result
