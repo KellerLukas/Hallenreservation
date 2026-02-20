@@ -30,6 +30,11 @@ from src.email.email_processors.subscription_update_email_processor import (
     SubscriptionUpdateEmailProcessor,
 )
 
+
+# Note: may need to install this and reboot
+# sudo sed -i 's/^# *\(de_CH.UTF-8 UTF-8\)/\1/' /etc/locale.gen
+# sudo locale-gen
+# sudo update-locale
 locale.setlocale(locale.LC_TIME, "de_CH.UTF-8")
 ZONEINFO = ZoneInfo("Europe/Zurich")
 TIMESTAMP_FILE = "last_reminder_run.txt"
