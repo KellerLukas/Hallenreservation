@@ -155,9 +155,12 @@ class EmailSender:
         else:
             subject += "Eingangsbestätigung"
             text = "Du hast deine Benachrichtigungseinstellungen erfolgreich aktualisiert. Ab sofort erhältst du Benachrichtigungen entsprechend deiner neuen Einstellungen:\n"
-            text += SubscriptionManager.get_subscription_meta_as_pretty_string(
+            meta_as_string = SubscriptionManager.get_subscription_meta_as_pretty_string(
                 subscription_meta
             )
+            meta_as_string = meta_as_string.replace(subscription_meta.email, "")
+            meta_as_string = meta_as_string.replace("\n", EMAIL_NEWLINE_STR)
+            text += meta_as_string
         body = subscription_update_confirmation_email_template.format(
             text=text,
             subscription_manage_url=SUBSCRIPTION_MANAGE_URL,
