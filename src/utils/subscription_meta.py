@@ -159,7 +159,7 @@ class SubscriptionManager:
     def pretty_print_subscriptions(self) -> None:
         result = self._get_subscription_meta_as_pretty_string()
         print(result, end="")
-    
+
     def _get_subscription_meta_as_pretty_string(self) -> str:
         lines: List[str] = []
         for email, meta in self.subscription_metas.items():
@@ -167,9 +167,9 @@ class SubscriptionManager:
             lines.extend(
                 [
                     email,
-                    f"  Weekdays: {weekday_names}",
-                    f"  Immediate Notifications: {meta.immediate_notifications}",
-                    f"  Reminder Lead Days: {meta.reminder_lead_days}",
+                    f"  Wochentage: {weekday_names}",
+                    f"  Sofortige Benachrichtigungen: {meta.immediate_notifications}",
+                    f"  Erinnerungsvorlaufzeit: {meta.reminder_lead_days}",
                     "",
                 ]
             )
