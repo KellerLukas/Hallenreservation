@@ -2,7 +2,7 @@ import os
 import logging
 from logging.handlers import WatchedFileHandler
 
-from src.utils.config import LOG_FILE
+from src.config import LOG_FILE
 
 
 class SafeWatchedFileHandler(WatchedFileHandler):

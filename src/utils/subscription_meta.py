@@ -17,8 +17,10 @@ class SubscriptionMeta:
     def __post_init__(self) -> None:
         if not all(0 <= d <= 6 for d in self.weekdays):
             raise ValueError("weekdays must be in range 0–6")
-        if self.reminder_lead_days is not None and self.reminder_lead_days < 0:
-            raise ValueError("reminder_lead_days must be >= 0 or None")
+        if self.reminder_lead_days is not None and not (
+            0 <= self.reminder_lead_days <= 30
+        ):
+            raise ValueError("reminder_lead_days must be between 0 and 30 or None")
 
     def to_dict(self) -> Dict[str, SUBSCRIPTION_META_VALUE_TYPES]:
         return asdict(self)

@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Tuple
 
-from src.utils.config import (
+from src.config import (
     O365_CLIENT_ID_ENV_VAR,
     O365_CREDS_OP_UUID,
     O365_SECRET_ENV_VAR,

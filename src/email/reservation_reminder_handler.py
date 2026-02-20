@@ -3,13 +3,15 @@ import logging
 from typing import Dict, List
 from O365.account import Account
 from O365.drive import File
-from src.utils.email_sender import EmailSender
+from src.email.email_sender import EmailSender
 from src.utils.find_attachment_meta import get_date_string_from_date
-from src.utils.reservation_email_processor import get_reservations_folder
+from src.email.email_processors.reservation_email_processor import (
+    get_reservations_folder,
+)
 from src.utils.typed_o365 import _get_items
 
 
-class ReservationReminder:
+class ReservationReminderHandler:
     def __init__(self, account: Account):
         self.account = account
         self.email_sender = EmailSender(account=account)

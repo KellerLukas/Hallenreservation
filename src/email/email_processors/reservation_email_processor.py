@@ -9,15 +9,15 @@ from O365.account import Account
 from O365.message import Message, MessageAttachment
 from O365.drive import Folder, File
 from tempfile import TemporaryDirectory
-from src.utils.email_sender import EmailSender
+from src.email.email_sender import EmailSender
 from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
-from src.utils.config import (
+from src.config import (
     SHAREPOINT_FOLDER_PATH,
     SHAREPOINT_FOLDER_PATH_REDACTED,
     SHAREPOINT_SITE_ID,
     SUBSCRIPTION_META_FILE,
 )
-from src.utils.email_processor_base import EmailProcessorBase
+from src.email.email_processors.email_processor_base import EmailProcessorBase
 from src.utils.subscription_meta import SubscriptionManager
 from src.utils.typed_o365 import _get_items
 from src.utils.typed_pymupdf import (

@@ -10,21 +10,29 @@ from O365.account import Account
 from O365.drive import File
 
 from tempfile import TemporaryDirectory
-from src.utils.config import (
+from src.config import (
     DEFAULT_FROM_ADDRESS,
     NOTIFICATION_PREFIX,
     REMINDER_PREFIX,
+    REMINDER_UPDATE_CONFIRMATION_PREFIX,
     SUBSCRIPTION_MANAGE_URL,
     SUPPORT_EMAIL_ADDRESS,
 )
-from src.utils.template.reminder_email_template import (
+from src.email.email_templates.reminder_email_template import (
     template as reminder_email_template,
 )
-from src.utils.template.reminder_email_template import (
+from src.email.email_templates.reminder_email_template import (
     reservation_list_template as reminder_email_reservation_list_template,
+)
+from src.email.email_templates.subscription_update_confirmation_email_template import (
+    template as subscription_update_confirmation_email_template,
+)
+from src.email.email_templates.immediate_notification_email_template import (
+    template as immediate_notification_email_template,
 )
 from src.utils.typed_o365 import _forward_message, _send_message, _set_message_body
 from src.utils.typed_pymupdf import _save_pdf
+from src.utils.subscription_meta import SubscriptionMeta
 
 
 EMAIL_NEWLINE_STR = "\n<br>\n"
@@ -86,7 +94,7 @@ class EmailSender:
         )
         text = reminder_email_template.format(
             days=(date - datetime.now()).days,
-            date=datetime.strftime(date, "%A, %d.%m.%Y"),
+            date=datetime.strftime(date, "%A, %d.%m.%Y,"),
             reservations=reservation_rows,
             subscription_manage_url=SUBSCRIPTION_MANAGE_URL,
             support_email_address=SUPPORT_EMAIL_ADDRESS,
@@ -116,16 +124,46 @@ class EmailSender:
         recipients: List[str],
     ) -> None:
         subject = f"{NOTIFICATION_PREFIX} Reservation vom {datetime.strftime(date, '%A, %d.%m.%Y')}"
-        body = f"Es gibt eine neue Reservation für den {datetime.strftime(date, '%A, %d.%m.%Y')}."
+        text = immediate_notification_email_template.format(
+            date=datetime.strftime(date, "%A, %d.%m.%Y,"),
+            subscription_manage_url=SUBSCRIPTION_MANAGE_URL,
+            support_email_address=SUPPORT_EMAIL_ADDRESS,
+        )
         with TemporaryDirectory() as td:
             attachment_path = os.path.join(td, filename)
             _save_pdf(pdf_doc, attachment_path)
             return self._send_email(
                 subject=subject,
-                body=body,
+                body=text,
                 recipients=recipients,
                 attachments=[attachment_path],
             )
+
+    def send_subscription_update_confirmation_email(
+        self, subscription_meta: SubscriptionMeta
+    ) -> None:
+        is_abmeldung = (
+            subscription_meta.reminder_lead_days is None
+            and not subscription_meta.immediate_notifications
+        )
+        subject = f"{REMINDER_UPDATE_CONFIRMATION_PREFIX} "
+        if is_abmeldung:
+            subject += "Abmeldungsbestätigung"
+            text = "Du hast dich erfolgreich vom Halleninfo-Service abgemeldet. Ab sofort erhältst du keine Benachrichtigungen mehr."
+        else:
+            subject += "Eingangsbestätigung"
+            text = "Du hast deine Benachrichtigungseinstellungen erfolgreich aktualisiert. Ab sofort erhältst du Benachrichtigungen entsprechend deiner neuen Einstellungen."
+        body = subscription_update_confirmation_email_template.format(
+            text=text,
+            subscription_manage_url=SUBSCRIPTION_MANAGE_URL,
+            support_email_address=SUPPORT_EMAIL_ADDRESS,
+        )
+        return self._send_email(
+            subject=subject,
+            body=body,
+            recipients=[subscription_meta.email],
+            attachments=[],
+        )
 
     def _send_email(
         self, subject: str, body: str, recipients: List[str], attachments: List[str]
