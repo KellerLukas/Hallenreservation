@@ -1,10 +1,23 @@
 from dataclasses import dataclass, asdict
 from datetime import datetime
+import logging
 from pathlib import Path
 import json
+import tempfile
 from typing import Dict, List, Optional, Union
+from O365.account import Account
+from src.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
 
 SUBSCRIPTION_META_VALUE_TYPES = Union[int, List[int], Optional[int], bool, str]
+WEEKDAY_NAMES_DE = [
+    "Montag",
+    "Dienstag",
+    "Mittwoch",
+    "Donnerstag",
+    "Freitag",
+    "Samstag",
+    "Sonntag",
+]
 
 
 @dataclass
@@ -48,6 +61,27 @@ class SubscriptionManager:
     def __init__(self, path: str) -> None:
         self.path = path
         self._subscription_metas = self.load_subscriptions(path)
+
+    def push_metas_to_sharepoint(self, account: Account) -> None:
+        logging.info("Pushing subscription metas to SharePoint...")
+        sharepoint = account.sharepoint()
+        site = sharepoint.get_site(SHAREPOINT_SITE_ID)
+        drive = site.get_default_document_library()
+        try:
+            folder = drive.get_item_by_path(SHAREPOINT_FOLDER_PATH)
+        except Exception as e:
+            raise RuntimeError(
+                f"Could not access SharePoint folder at path {SHAREPOINT_FOLDER_PATH}: {e}"
+            )
+        target_file_name = "subscription_metas.txt"
+        pretty_content = self.get_subscription_meta_list_as_pretty_string()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            upload_path = Path(temp_dir) / target_file_name
+            upload_path.write_text(pretty_content, encoding="utf-8")
+            new_file = folder.upload_file(str(upload_path), target_file_name)
+        logging.info(
+            f"... uploaded subscription metas to SharePoint file {new_file.name} to folder {folder.name}"
+        )
 
     @property
     def subscription_metas(self) -> Dict[str, SubscriptionMeta]:
@@ -123,8 +157,23 @@ class SubscriptionManager:
         ]
 
     def pretty_print_subscriptions(self) -> None:
+        result = self.get_subscription_meta_list_as_pretty_string()
+        print(result, end="")
+
+    def get_subscription_meta_list_as_pretty_string(self) -> str:
+        lines: List[str] = []
         for email, meta in self.subscription_metas.items():
-            print(email)
-            print(f"  Weekdays: {meta.weekdays}")
-            print(f"  Immediate Notifications: {meta.immediate_notifications}")
-            print(f"  Reminder Lead Days: {meta.reminder_lead_days}")
+            lines.append(self.get_subscription_meta_as_pretty_string(meta))
+        result = "\n".join(lines).rstrip() + "\n"
+        return result
+
+    @staticmethod
+    def get_subscription_meta_as_pretty_string(meta: SubscriptionMeta) -> str:
+        weekday_names = ", ".join(WEEKDAY_NAMES_DE[day] for day in meta.weekdays)
+        result = (
+            f"{meta.email}\n"
+            f"    Wochentage: {weekday_names}\n"
+            f"    Sofortige Benachrichtigungen: {'Ja' if meta.immediate_notifications else 'Nein'}\n"
+            f"    Erinnerungen: {str(meta.reminder_lead_days) + ' Tage im Voraus' if meta.reminder_lead_days is not None else 'Keine'}\n"
+        )
+        return result
