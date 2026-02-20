@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 import json
 from onepassword import OnePassword
 from onepassword.utils import read_bash_return

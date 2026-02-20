@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from O365 import Account
 from typing import Optional
 
@@ -5,7 +6,7 @@ from typing import Optional
 class FixedAccount(Account):
     def get_consent_url(
         self, *, requested_scopes: Optional[list] = None, redirect_uri, **kwargs
-    ) -> str:
+    ) -> tuple[str, dict]:
         """In VS Code the input of the token_url seems to be buggy or not work at all.
         This divides the authentication method into two steps as a workaround.
         """

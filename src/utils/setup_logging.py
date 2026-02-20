@@ -2,7 +2,7 @@ import os
 import logging
 from logging.handlers import WatchedFileHandler
 
-from src.utils.config import LOG_FILE
+from src.config import LOG_FILE
 
 
 class SafeWatchedFileHandler(WatchedFileHandler):
@@ -10,13 +10,13 @@ class SafeWatchedFileHandler(WatchedFileHandler):
     Ensure a new file is created if the log file gets deleted.
     """
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         if not os.path.exists(self.baseFilename):
             open(self.baseFilename, "a").close()
         super().emit(record)
 
 
-def setup_logging_to_file():
+def setup_logging_to_file() -> None:
     # Create a logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)

@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Tuple
 
-from src.utils.config import (
+from src.config import (
     O365_CLIENT_ID_ENV_VAR,
     O365_CREDS_OP_UUID,
     O365_SECRET_ENV_VAR,
@@ -11,7 +11,7 @@ from src.utils.config import (
 )
 
 
-def setup_env_var_token():
+def setup_env_var_token() -> None:
     from src.utils.improved_onepassword import ImprovedOnePassword
 
     if "OP_SERVICE_ACCOUNT_TOKEN" not in os.environ.keys():
@@ -20,7 +20,7 @@ def setup_env_var_token():
         os.environ["OP_SERVICE_ACCOUNT_TOKEN"] = item["credential"]
 
 
-def assert_env_var_token_available():
+def assert_env_var_token_available() -> None:
     if "OP_SERVICE_ACCOUNT_TOKEN" not in os.environ.keys():
         logging.error("OP Service Account token not available as env variable")
         raise PermissionError("OP Service Account token not available as env variable")
@@ -44,5 +44,8 @@ def get_o365_credentials_from_env() -> Tuple[str, str]:
     ), get_credentials_from_env_var(O365_SECRET_ENV_VAR)
 
 
-def get_credentials_from_env_var(env_var_key: str):
-    return os.getenv(env_var_key)
+def get_credentials_from_env_var(env_var_key: str) -> str:
+    value = os.getenv(env_var_key)
+    if value is None:
+        raise EnvironmentError(f"Environment variable '{env_var_key}' is not set")
+    return value

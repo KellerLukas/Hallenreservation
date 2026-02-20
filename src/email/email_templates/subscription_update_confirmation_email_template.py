@@ -7,16 +7,11 @@ template = """
       <p>Hallo</p>
 
       <p>
-        In <strong>{days}</strong> Tagen am <strong>{date}</strong> liegen folgende Reservationen vor:
+        {text}
       </p>
-
-      <ul style="margin:10px 0; padding-left:20px;">
-        {reservations}
-      </ul>
-
+      
       <p>
-        Du erhältst diese Nachricht, weil du den Hallenreservation-Reminder aktiviert hast.
-        Du kannst den Reminder hier anpassen oder abbestellen:
+        Du kannst deine Benachrichtigungseinstellungen hier anpassen oder den Service abbestellen:
         <br>
         {subscription_manage_url}
       </p>
@@ -34,10 +29,4 @@ template = """
     </td>
   </tr>
 </table>
-"""
-
-reservation_list_template = """
-  <li style="padding:4px 0; font-size:14px;">
-    {filename}
-  </li>
 """

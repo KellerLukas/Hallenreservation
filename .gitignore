@@ -3,6 +3,7 @@ demo/**/*
 **/o365_token.txt
 **/setenv
 run_hallenreservation.sh
+**/*.sh
 **/config.py
 subscription_metas.json
 
