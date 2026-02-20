@@ -89,7 +89,7 @@ class EmailSender:
             for filename in reservations.keys()
         )
         text = reminder_email_template.format(
-            days=(date - datetime.now()).days,
+            days=(date.date() - datetime.now(date.tzinfo).date()).days,
             date=datetime.strftime(date, "%A, %d.%m.%Y,"),
             reservations=reservation_rows,
             subscription_manage_url=SUBSCRIPTION_MANAGE_URL,
