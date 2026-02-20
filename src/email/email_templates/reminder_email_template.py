@@ -36,8 +36,8 @@ template = """
 </table>
 """
 
-reservation_list_template = """
+bullet_point_list_template = """
   <li style="padding:4px 0; font-size:14px;">
-    {filename}
+    {item}
   </li>
 """

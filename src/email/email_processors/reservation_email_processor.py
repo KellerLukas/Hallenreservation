@@ -101,8 +101,8 @@ class ReservationEmailProcessor(EmailProcessorBase):
         )
         self.email_sender.send_immediate_notification_email(
             pdf_doc=pdf_doc_redacted,
-            filename=metas[0].clean_filename,
-            date=metas[0].date,
+            filename=attachment.name,
+            dates=[meta.date for meta in metas],
             recipients=list(emails_to_notify),
         )
 

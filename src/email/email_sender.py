@@ -21,9 +21,7 @@ from src.config import (
 from src.email.email_templates.reminder_email_template import (
     template as reminder_email_template,
 )
-from src.email.email_templates.reminder_email_template import (
-    reservation_list_template as reminder_email_reservation_list_template,
-)
+from src.email.email_templates.reminder_email_template import bullet_point_list_template
 from src.email.email_templates.subscription_update_confirmation_email_template import (
     template as subscription_update_confirmation_email_template,
 )
@@ -87,9 +85,7 @@ class EmailSender:
     ) -> None:
         subject = f"{REMINDER_PREFIX} Reservation vom {datetime.strftime(date, '%A, %d.%m.%Y')}"
         reservation_rows = "\n".join(
-            reminder_email_reservation_list_template.format(
-                filename=html.escape(filename)
-            )
+            bullet_point_list_template.format(item=html.escape(filename))
             for filename in reservations.keys()
         )
         text = reminder_email_template.format(
@@ -120,12 +116,18 @@ class EmailSender:
         self,
         pdf_doc: fitz.Document,
         filename: str,
-        date: datetime,
+        dates: List[datetime],
         recipients: List[str],
     ) -> None:
-        subject = f"{NOTIFICATION_PREFIX} Reservation vom {datetime.strftime(date, '%A, %d.%m.%Y')}"
+        subject = f"{NOTIFICATION_PREFIX} Neue Reservationsbestätigung"
+        dates_str = "\n".join(
+            bullet_point_list_template.format(
+                item=datetime.strftime(date, "%A, %d.%m.%Y")
+            )
+            for date in dates
+        )
         text = immediate_notification_email_template.format(
-            date=datetime.strftime(date, "%A, %d.%m.%Y,"),
+            dates=dates_str,
             subscription_manage_url=SUBSCRIPTION_MANAGE_URL,
             support_email_address=SUPPORT_EMAIL_ADDRESS,
         )

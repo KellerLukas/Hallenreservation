@@ -7,11 +7,12 @@ template = """
       <p>Hallo</p>
 
       <p>
-        Es gibt eine neue Reservation für den <strong>{date}</strong>:
+        Es ist eine neue Reservationsbestätigung eingetroffen. Diese betrifft folgende Tage:
       </p>
-      <p>
-        {filename}
-      </p>
+      
+      <ul style="margin:10px 0; padding-left:20px;">
+        {dates}
+      </ul>
 
       <p>
         Du erhältst diese Nachricht, weil du den Halleninfo-Service aktiviert hast.
