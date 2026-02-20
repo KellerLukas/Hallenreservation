@@ -44,11 +44,13 @@ class Orchestrator:
     def __init__(self) -> None:
         self.account = self._set_up_account()
         self.email_sender = EmailSender(account=self.account)
+        self._subscription_meta_modified = False
 
     def run(self) -> None:
         self.process_incoming_emails()
         self.send_reminders()
-        self.push_subscription_metas_to_sharepoint()
+        if self._subscription_meta_modified:
+            self.push_subscription_metas_to_sharepoint()
 
     def process_incoming_emails(self) -> None:
         mailbox = self.account.mailbox(resource=MONITORED_EMAIL_ADDRESS)
@@ -66,6 +68,7 @@ class Orchestrator:
             elif self._is_subscription_update_email(message):
                 logging.info("... is subscription update email")
                 self.process_subscription_update_email(message)
+                self._subscription_meta_modified = True
             else:
                 logging.info("... unknown email, skipping.")
                 _mark_as_read(message)
@@ -160,6 +163,7 @@ class Orchestrator:
     def push_subscription_metas_to_sharepoint(self) -> None:
         manager = SubscriptionManager(path=SUBSCRIPTION_META_FILE)
         manager.push_metas_to_sharepoint(account=self.account)
+        self._subscription_meta_modified = False
 
     def _is_reservation_email(self, message: Message) -> bool:
         expected_subject_prefix = INCOMING_RESERVATION_PREFIX
