@@ -5,17 +5,28 @@ from typing import List, Optional, Set, Tuple
 import fitz
 import tempfile
 import logging
-from O365 import Account
+from O365.account import Account
 from O365.message import Message, MessageAttachment
 from O365.drive import Folder, File
 from tempfile import TemporaryDirectory
+from src.utils.email_sender import EmailSender
 from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
 from src.utils.config import (
     SHAREPOINT_FOLDER_PATH,
     SHAREPOINT_FOLDER_PATH_REDACTED,
     SHAREPOINT_SITE_ID,
+    SUBSCRIPTION_META_FILE,
 )
 from src.utils.email_processor_base import EmailProcessorBase
+from src.utils.subscription_meta import SubscriptionManager
+from src.utils.typed_o365 import _get_items
+from src.utils.typed_pymupdf import (
+    _insert_pdf,
+    _open_empty_pdf,
+    _open_pdf_from_bytes,
+    _open_pdf_from_path,
+    _pdf_tobytes,
+)
 
 PAGE_NUMBER_REGEX = re.compile(r"Seite (\d+)/(\d+)")
 
@@ -24,8 +35,10 @@ class ReservationEmailProcessor(EmailProcessorBase):
     def __init__(self, message: Message, account: Account):
         super().__init__(message, account)
         self.find_attachment_meta = FindAttachmentMeta()
+        self.manager = SubscriptionManager(path=SUBSCRIPTION_META_FILE)
+        self.email_sender = EmailSender(account=self.account)
 
-    def process(self):
+    def process(self) -> None:
         logging.info(
             f"... starting process for reservation message {self.message.subject}"
         )
@@ -41,14 +54,19 @@ class ReservationEmailProcessor(EmailProcessorBase):
                 raise e
         logging.info(f"... done processing message {self.message.subject}")
 
-    def process_attachment(self, attachment: MessageAttachment):
+    def process_attachment(self, attachment: MessageAttachment) -> None:
         logging.info(f"... processing attachment {attachment.name}...")
+        if not isinstance(attachment.name, str):
+            raise ValueError(f"Attachment name is not a string: {attachment.name}")
         if not attachment.name.endswith(".pdf"):
             logging.info("... not a pdf")
-            return None
-
+            return
+        if not isinstance(attachment.content, str):
+            raise ValueError(
+                f"Unexpected attachment content type: {type(attachment.content)}"
+            )
         pdf_content = base64.b64decode(attachment.content)
-        pdf_doc = fitz.open(stream=pdf_content, filetype="pdf")
+        pdf_doc = _open_pdf_from_bytes(pdf_content)
         cutoff_page_num = self.determine_pdf_cutoff(pdf_doc=pdf_doc)
         if cutoff_page_num:
             pdf_doc = self.cut_pdf_after_page_n(pdf_doc=pdf_doc, n=cutoff_page_num)
@@ -57,23 +75,47 @@ class ReservationEmailProcessor(EmailProcessorBase):
 
         pdf_text = self.read_pdf(pdf_doc)
         metas = self.find_attachment_meta.find(attachment_content=pdf_text)
+        if not metas:
+            raise ValueError(
+                f"Could not find meta information for attachment {attachment.name}"
+            )
         self.upload_to_sharepoint(pdf_doc=pdf_doc, metas=metas, redacted=False)
-        sensitive_content = metas[0].sensitive_content if metas else set()
+        sensitive_content = metas[0].sensitive_content
         pdf_doc_redacted = self.redact_pdf(
             pdf_doc=pdf_doc, strings_to_redact=sensitive_content
         )
         self.upload_to_sharepoint(pdf_doc=pdf_doc_redacted, metas=metas, redacted=True)
+        weekdays = {meta.date.weekday() for meta in metas}
+        emails_to_notify = set()
+        for weekday in weekdays:
+            emails_to_notify.update(
+                self.manager.emails_with_notifications_for_weekday(weekday)
+            )
+        if not emails_to_notify:
+            logging.info(
+                f"... no immediate notifications to send for attachment {attachment.name}"
+            )
+            return
+        logging.info(
+            f"... sending immediate notifications to {emails_to_notify} for attachment {attachment.name}"
+        )
+        self.email_sender.send_immediate_notification_email(
+            pdf_doc=pdf_doc_redacted,
+            filename=metas[0].clean_filename,
+            date=metas[0].date,
+            recipients=list(emails_to_notify),
+        )
 
     def read_pdf(self, doc: fitz.Document) -> str:
         pdf_text = ""
-        for page in doc:
+        for page in doc:  # type: ignore[attr-defined]
             page_text = page.get_text()
             pdf_text += page_text
         return pdf_text
 
     def determine_pdf_cutoff(self, pdf_doc: fitz.Document) -> Optional[int]:
         first_page = pdf_doc[0]
-        page_text = first_page.get_text()
+        page_text = first_page.get_text()  # type: ignore[attr-defined]
         detected_current_page, detected_expected_num_of_pages = (
             self.extract_page_number_from_pdf_text(page_text)
         )
@@ -89,10 +131,10 @@ class ReservationEmailProcessor(EmailProcessorBase):
     def redact_pdf(
         self, pdf_doc: fitz.Document, strings_to_redact: Set[str]
     ) -> fitz.Document:
-        redacted_doc = fitz.open()
-        redacted_doc.insert_pdf(pdf_doc)
+        redacted_doc = _open_empty_pdf()
+        _insert_pdf(redacted_doc, pdf_doc)
 
-        for page in redacted_doc:
+        for page in redacted_doc:  # type: ignore[attr-defined]
             for str_to_redact in strings_to_redact:
                 text_instances = page.search_for(str_to_redact)
                 for inst in text_instances:
@@ -110,7 +152,7 @@ class ReservationEmailProcessor(EmailProcessorBase):
 
     def upload_to_sharepoint(
         self, pdf_doc: fitz.Document, metas: List[AttachmentMeta], redacted: bool
-    ):
+    ) -> None:
         logging.info(
             f"... uploading to sharepoint {'in redacted form' if redacted else ''}..."
         )
@@ -119,17 +161,17 @@ class ReservationEmailProcessor(EmailProcessorBase):
 
     def upload_single_file_to_sharepoint(
         self, pdf_doc: fitz.Document, meta: AttachmentMeta, redacted: bool
-    ):
+    ) -> None:
         folder = get_reservations_folder(
-            account=self.account, year=meta.year, redacted=redacted
+            account=self.account, year=meta.date.year, redacted=redacted
         )
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-            temp_file.write(pdf_doc.tobytes())
+            temp_file.write(_pdf_tobytes(pdf_doc))
             temp_file_path = temp_file.name
 
         try:
-            existing_files = [item for item in folder.get_items()]
+            existing_files = [item for item in _get_items(folder)]
             if meta.clean_filename in {item.name for item in existing_files}:
                 base_name, ext = meta.clean_filename.rsplit(".", 1)
                 existing_files_matching_base_name = [
@@ -175,7 +217,7 @@ class ReservationEmailProcessor(EmailProcessorBase):
     @staticmethod
     def _pdf_text_signature(file_path: str) -> str:
         pages: List[str] = []
-        with fitz.open(file_path) as doc:
+        with _open_pdf_from_path(file_path) as doc:
             for page in doc:
                 pages.append(" ".join(page.get_text("text").split()))
         return f"{len(pages)}|" + "\f".join(pages)
@@ -191,8 +233,8 @@ class ReservationEmailProcessor(EmailProcessorBase):
 
     @staticmethod
     def cut_pdf_after_page_n(pdf_doc: fitz.Document, n: int) -> fitz.Document:
-        new_doc = fitz.open()
-        new_doc.insert_pdf(pdf_doc, from_page=0, to_page=n - 1)
+        new_doc = _open_empty_pdf()
+        _insert_pdf(new_doc, pdf_doc, from_page=0, to_page=n - 1)
         return new_doc
 
 
@@ -215,4 +257,6 @@ def get_reservations_folder(account: Account, year: int, redacted: bool) -> Fold
     except Exception:
         folder = parent.create_child_folder(year_str)
         logging.info(f"... created folder: {folder_path}")
+    if not isinstance(folder, Folder):
+        raise RuntimeError(f"Expected {folder_path} to be a folder!")
     return folder

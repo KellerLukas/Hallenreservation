@@ -1,52 +1,39 @@
-from openai import OpenAI
 import logging
 import re
 import unicodedata
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Any
 from datetime import datetime
 from pydantic import BaseModel
 
-from src.utils.find_attachment_meta_prompt import (
-    prompt_template as attachment_prompt_template,
-)
-from src.utils.find_attachment_meta_prompt import (
-    question_template as attachment_question_template,
-)
 from src.utils.errors import ClassificationError
-from src.utils.credentials import get_credentials_from_env_var
-from src.utils.config import OPEN_AI_API_KEY_ENV_VAR
 
 DATE_REGEX_STR = r"\b\d{2}\.\d{2}\.\d{4}\b"
 
 
 class AttachmentMeta(BaseModel):
-    clean_filename: Optional[str]
-    year: Optional[int]
-    explain: Optional[str] = None
+    clean_filename: str
+    date: datetime
     sensitive_content: Set[str] = set()
 
 
 class FindAttachmentMeta:
-    def __init__(self) -> None:
-        self._client = None
-
-    @property
-    def client(self) -> OpenAI:
-        if self._client is None:
-            self._client = OpenAI(api_key=self.__get_key())
-        return self._client
-
     def find(self, attachment_content: str) -> List[AttachmentMeta]:
         booking_id = self._find_booking_id(attachment_content)
+        if not booking_id:
+            logging.warning("Could not find booking ID in attachment content!")
+            raise ClassificationError(
+                "Could not find booking ID in attachment content!"
+            )
         org = self._find_organization(attachment_content, booking_id=booking_id)
         dates = self._find_dates(attachment_content)
         sensitive_content = self._find_sensitive_content(attachment_content)
         sensitive_content = self._remove_string_from_sensitive_content(
             sensitive_content, ""
         )
-        sensitive_content = self._remove_string_from_sensitive_content(
-            sensitive_content, org
-        )
+        if org:
+            sensitive_content = self._remove_string_from_sensitive_content(
+                sensitive_content, org
+            )
         metas = []
         for date in dates:
             clean_filename = (
@@ -56,7 +43,7 @@ class FindAttachmentMeta:
             metas.append(
                 AttachmentMeta(
                     clean_filename=clean_filename,
-                    year=date.year,
+                    date=date,
                     sensitive_content=sensitive_content,
                 )
             )
@@ -125,14 +112,11 @@ class FindAttachmentMeta:
         sensitive_content = set()
         sensitive_content.update(self._find_phone_numbers(attachment_content))
         sensitive_content.update(self._find_email_addresses(attachment_content))
-        sensitive_content.update(
-            set(
-                self._find_address_block(
-                    attachment_content,
-                    booking_id=self._find_booking_id(attachment_content),
-                )
+        booking_id = self._find_booking_id(attachment_content)
+        if booking_id:
+            sensitive_content.update(
+                set(self._find_address_block(attachment_content, booking_id=booking_id))
             )
-        )
         return sensitive_content
 
     def _remove_string_from_sensitive_content(
@@ -154,63 +138,8 @@ class FindAttachmentMeta:
         email_addresses = re.findall(email_regex, attachment_content)
         return set(email_addresses)
 
-    def find_using_openai(
-        self, attachment_name: str, attachment_content: str
-    ) -> List[AttachmentMeta]:
-        raise DeprecationWarning(
-            "This method is deprecated and should not be used anymore."
-        )
-        prompt = self._setup_prompt(
-            attachment_name=attachment_name, attachment_content=attachment_content
-        )
-        question = attachment_question_template.format()
-        response = self.client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
-            response_format=AttachmentMeta,
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": question},
-            ],
-        )
-        response = response.choices[0].message.parsed
 
-        response.clean_filename = (
-            response.clean_filename if not is_none(response.clean_filename) else None
-        )
-
-        if response.clean_filename is None:
-            message = f"Could not find clean filename for attachment {attachment_name}, reason : {response.explain}"
-            logging.warning(message)
-            raise ClassificationError(message)
-        response.clean_filename = clean_filename_for_sharepoint(response.clean_filename)
-        if response.year is None:
-            message = f"Could not find year for for attachment {attachment_name}, reason : {response.explain}"
-            logging.warning(message)
-            raise ClassificationError(message)
-
-        logging.info(
-            f"Found meta {response.clean_filename}, year {response.year} for for attachment {attachment_name}"
-        )
-        return [response]
-
-    def _setup_prompt(self, attachment_name: str, attachment_content: str) -> str:
-        raise DeprecationWarning(
-            "This method is deprecated and should not be used anymore."
-        )
-        template = attachment_prompt_template
-        prompt = template.format(
-            mail_body=self.message_body,
-            mail_subject=self.message_subject,
-            attachment_name=attachment_name,
-            attachment_content=attachment_content,
-        )
-        return prompt
-
-    def __get_key(self):
-        return get_credentials_from_env_var(OPEN_AI_API_KEY_ENV_VAR)
-
-
-def is_none(value):
+def is_none(value: Any) -> bool:
     if value is None:
         return True
     if isinstance(value, str) and value.lower() == "none":
@@ -218,7 +147,7 @@ def is_none(value):
     return False
 
 
-def clean_filename_for_sharepoint(filename):
+def clean_filename_for_sharepoint(filename: str) -> str:
     """
     Cleans a filename to be compatible with SharePoint restrictions.
     Removes invalid characters and reserved names.

@@ -1,13 +1,14 @@
 import logging
-import traceback
 import locale
 from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
 from pathlib import Path
-from O365.mailbox import Message
+from O365.message import Message
 from O365.account import Account
 from src.utils.credentials import get_o365_credentials_from_env
+from src.utils.email_sender import EmailSender, EmailSendingError
 from src.utils.fixed_o365_account import FixedAccount
+from src.utils.typed_o365 import _mark_as_read, _mark_as_unread
 from src.utils.reservation_email_processor import ReservationEmailProcessor
 from src.utils.errors import NotAuthenticatedError
 from src.utils.config import (
@@ -15,15 +16,15 @@ from src.utils.config import (
     MONITORED_EMAIL_ADDRESS,
     REMINDER_UPDATE_PREFIX,
     SUBSCRIPTION_META_FILE,
-    SUPPORT_EMAIL_ADDRESS,
     VERTEILER_PREFIX,
     WORDPRESS_EMAIL,
 )
 from src.utils.setup_logging import setup_logging_to_file
 from src.utils.reservation_reminder import (
-    EMAIL_NEWLINE_STR,
     ReservationReminder,
-    load_subscriptions,
+)
+from src.utils.subscription_meta import (
+    SubscriptionManager,
 )
 from src.utils.subscription_update_email_processor import (
     SubscriptionUpdateEmailProcessor,
@@ -43,7 +44,7 @@ ZONEINFO = ZoneInfo("Europe/Zurich")
 setup_logging_to_file()
 
 
-def main():
+def main() -> None:
     credentials = get_o365_credentials_from_env()
     account = FixedAccount(credentials)
 
@@ -57,46 +58,7 @@ def main():
     account.connection.refresh_token()
 
 
-def send_alert_message_for_upload(message: Message, issue: Exception) -> bool:
-    fwd = message.forward()
-    fwd.subject = f"HALLENRESERVATION UPLOAD ERROR: {fwd.subject}"
-    fwd.body = (
-        str(issue)
-        + EMAIL_NEWLINE_STR
-        + traceback.format_exc()
-        + EMAIL_NEWLINE_STR
-        + fwd.body
-    )
-    fwd.to.add(SUPPORT_EMAIL_ADDRESS)
-    return fwd.send()
-
-
-def send_alert_message_for_reminder(account: Account, issue: Exception) -> bool:
-    mailbox = account.mailbox(resource=DEFAULT_FROM_ADDRESS)
-    msg = mailbox.new_message()
-    msg.to.add(SUPPORT_EMAIL_ADDRESS)
-    msg.subject = "HALLENRESERVATION REMINDER ERROR"
-    msg.body = str(issue) + EMAIL_NEWLINE_STR + traceback.format_exc()
-    return msg.send()
-
-
-def send_alert_message_for_subscription_update(
-    message: Message, issue: Exception
-) -> bool:
-    fwd = message.forward()
-    fwd.subject = f"HALLENRESERVATION SUBSCRIPTION UPDATE ERROR: {fwd.subject}"
-    fwd.body = (
-        str(issue)
-        + EMAIL_NEWLINE_STR
-        + traceback.format_exc()
-        + EMAIL_NEWLINE_STR
-        + fwd.body
-    )
-    fwd.to.add(SUPPORT_EMAIL_ADDRESS)
-    return fwd.send()
-
-
-def process_incoming_emails(account: Account):
+def process_incoming_emails(account: Account) -> None:
     mailbox = account.mailbox(resource=MONITORED_EMAIL_ADDRESS)
     inbox = mailbox.inbox_folder()
 
@@ -115,7 +77,7 @@ def process_incoming_emails(account: Account):
             process_subscription_update_email(account=account, message=message)
         else:
             logging.info("... unknown email, skipping.")
-            message.mark_as_read()
+            _mark_as_read(message)
 
 
 def is_reservation_email(message: Message) -> bool:
@@ -139,41 +101,48 @@ def is_subscription_update_email(message: Message) -> bool:
     return True
 
 
-def process_incoming_reservation_email(account: Account, message: Message):
+def process_incoming_reservation_email(account: Account, message: Message) -> None:
     processor = ReservationEmailProcessor(message=message, account=account)
     try:
         processor.process()
         logging.info("... done, marking as read.")
-        message.mark_as_read()
+        _mark_as_read(message)
     except Exception as e:
         logging.info("... failed, sending alert message...")
-        success = send_alert_message_for_upload(message=message, issue=e)
-        if success:
-            logging.info("... sending message successful. marking as read.")
-            message.mark_as_read()
-        else:
-            logging.info("... failed to send message. Keep as unread.")
-            message.mark_as_unread()
+        email_sender = EmailSender(account=account)
+        try:
+            email_sender.send_alert_message_for_upload(message=message, issue=e)
+            logging.info("... marking as read.")
+            _mark_as_read(message)
+        except EmailSendingError as ese:
+            logging.info("... failed to send alert message for upload error.")
+            logging.info(ese)
+            _mark_as_unread(message)
 
 
-def process_subscription_update_email(account: Account, message: Message):
+def process_subscription_update_email(account: Account, message: Message) -> None:
     processor = SubscriptionUpdateEmailProcessor(message=message, account=account)
     try:
         processor.process()
         logging.info("... done, marking as read.")
-        message.mark_as_read()
+        _mark_as_read(message)
     except Exception as e:
         logging.info("... failed, sending alert message...")
-        success = send_alert_message_for_subscription_update(message=message, issue=e)
-        if success:
-            logging.info("... sending message successful. marking as read.")
-            message.mark_as_read()
-        else:
+        email_sender = EmailSender(account=account)
+        try:
+            email_sender.send_alert_message_for_subscription_update(
+                message=message, issue=e
+            )
+            logging.info("... marking as read.")
+
+            _mark_as_read(message)
+        except EmailSendingError as ese:
             logging.info("... failed to send message. Keep as unread.")
-            message.mark_as_unread()
+            logging.info(ese)
+            _mark_as_unread(message)
 
 
-def process_reminders(account: Account):
+def process_reminders(account: Account) -> None:
     last_reminders_timestamp = load_last_processed_reminders_timestamp()
     now = datetime.now(ZONEINFO)
     yesterday = (now - timedelta(days=1)).date()
@@ -184,18 +153,13 @@ def process_reminders(account: Account):
 
     logging.info("Processing reminders...")
     try:
-        subscription_metas = load_subscriptions(SUBSCRIPTION_META_FILE)
-        current_weekday = datetime.now().weekday()
-        targets_per_lead_day_number = {}
-        for meta in subscription_metas.values():
-            if ((current_weekday + meta.lead_days) % 7) not in meta.weekdays:
-                continue
-            if meta.lead_days not in targets_per_lead_day_number:
-                targets_per_lead_day_number[meta.lead_days] = []
-            targets_per_lead_day_number[meta.lead_days].append(meta.email)
+        manager = SubscriptionManager(path=SUBSCRIPTION_META_FILE)
+        targets_per_lead_day_number = (
+            manager.emails_per_lead_day_number_with_reminder_due_today
+        )
 
         if len(targets_per_lead_day_number) == 0:
-            logging.info("... no targets found for current weekday.")
+            logging.info("... no targets with reminders due today, skipping.")
             return
         logging.info(
             f"... identified targets per lead day number: {targets_per_lead_day_number}"
@@ -211,14 +175,16 @@ def process_reminders(account: Account):
         dump_last_processed_reminders_timestamp(now)
     except Exception as e:
         logging.info("... failed, sending alert message...")
-        success = send_alert_message_for_reminder(account=account, issue=e)
-        if success:
+        email_sender = EmailSender(account=account)
+        try:
+            email_sender.send_alert_message_for_reminder(issue=e)
             logging.info("... sending message successful.")
-        else:
+        except EmailSendingError as ese:
             logging.info("... failed to send message.")
+            logging.info(ese)
 
 
-def dump_last_processed_reminders_timestamp(ts: datetime):
+def dump_last_processed_reminders_timestamp(ts: datetime) -> None:
     path = Path(TIMESTAMP_FILE)
 
     if ts.tzinfo is None:

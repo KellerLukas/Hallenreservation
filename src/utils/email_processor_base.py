@@ -1,4 +1,4 @@
-from O365 import Account
+from O365.account import Account
 from O365.message import Message
 
 
@@ -7,5 +7,5 @@ class EmailProcessorBase:
         self.message = message
         self.account = account
 
-    def process(self):
+    def process(self) -> None:
         raise NotImplementedError()
