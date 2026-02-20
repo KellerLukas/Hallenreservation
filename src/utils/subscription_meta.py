@@ -3,11 +3,21 @@ from datetime import datetime
 import logging
 from pathlib import Path
 import json
+import tempfile
 from typing import Dict, List, Optional, Union
 from O365.account import Account
 from src.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
 
 SUBSCRIPTION_META_VALUE_TYPES = Union[int, List[int], Optional[int], bool, str]
+WEEKDAY_NAMES_DE = [
+    "Montag",
+    "Dienstag",
+    "Mittwoch",
+    "Donnerstag",
+    "Freitag",
+    "Samstag",
+    "Sonntag",
+]
 
 
 @dataclass
@@ -63,8 +73,12 @@ class SubscriptionManager:
             raise RuntimeError(
                 f"Could not access SharePoint folder at path {SHAREPOINT_FOLDER_PATH}: {e}"
             )
-        target_file_name = "subscription_metas.json"
-        new_file = folder.upload_file(self.path, target_file_name)
+        target_file_name = "subscription_metas.txt"
+        pretty_content = self.pretty_print_subscriptions()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            upload_path = Path(temp_dir) / target_file_name
+            upload_path.write_text(pretty_content, encoding="utf-8")
+            new_file = folder.upload_file(str(upload_path), target_file_name)
         logging.info(
             f"... uploaded subscription metas to SharePoint file {new_file.name} to folder {folder.name}"
         )
@@ -142,9 +156,20 @@ class SubscriptionManager:
             if target_weekday in meta.weekdays and meta.reminder_lead_days == n
         ]
 
-    def pretty_print_subscriptions(self) -> None:
+    def pretty_print_subscriptions(self) -> str:
+        lines: List[str] = []
         for email, meta in self.subscription_metas.items():
-            print(email)
-            print(f"  Weekdays: {meta.weekdays}")
-            print(f"  Immediate Notifications: {meta.immediate_notifications}")
-            print(f"  Reminder Lead Days: {meta.reminder_lead_days}")
+            weekday_names = ", ".join(WEEKDAY_NAMES_DE[day] for day in meta.weekdays)
+            lines.extend(
+                [
+                    email,
+                    f"  Weekdays: {weekday_names}",
+                    f"  Immediate Notifications: {meta.immediate_notifications}",
+                    f"  Reminder Lead Days: {meta.reminder_lead_days}",
+                    "",
+                ]
+            )
+
+        result = "\n".join(lines).rstrip() + "\n"
+        print(result, end="")
+        return result
