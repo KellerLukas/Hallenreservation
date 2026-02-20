@@ -74,7 +74,7 @@ class SubscriptionManager:
                 f"Could not access SharePoint folder at path {SHAREPOINT_FOLDER_PATH}: {e}"
             )
         target_file_name = "subscription_metas.txt"
-        pretty_content = self._get_subscription_meta_as_pretty_string()
+        pretty_content = self.get_subscription_meta_list_as_pretty_string()
         with tempfile.TemporaryDirectory() as temp_dir:
             upload_path = Path(temp_dir) / target_file_name
             upload_path.write_text(pretty_content, encoding="utf-8")
@@ -157,22 +157,23 @@ class SubscriptionManager:
         ]
 
     def pretty_print_subscriptions(self) -> None:
-        result = self._get_subscription_meta_as_pretty_string()
+        result = self.get_subscription_meta_list_as_pretty_string()
         print(result, end="")
 
-    def _get_subscription_meta_as_pretty_string(self) -> str:
+    def get_subscription_meta_list_as_pretty_string(self) -> str:
         lines: List[str] = []
         for email, meta in self.subscription_metas.items():
-            weekday_names = ", ".join(WEEKDAY_NAMES_DE[day] for day in meta.weekdays)
-            lines.extend(
-                [
-                    email,
-                    f"  Wochentage: {weekday_names}",
-                    f"  Sofortige Benachrichtigungen: {meta.immediate_notifications}",
-                    f"  Erinnerungsvorlaufzeit: {meta.reminder_lead_days}",
-                    "",
-                ]
-            )
-
+            lines.append(self.get_subscription_meta_as_pretty_string(meta))
         result = "\n".join(lines).rstrip() + "\n"
+        return result
+
+    @staticmethod
+    def get_subscription_meta_as_pretty_string(meta: SubscriptionMeta) -> str:
+        weekday_names = ", ".join(WEEKDAY_NAMES_DE[day] for day in meta.weekdays)
+        result = (
+            f"{meta.email}\n"
+            f"    Wochentage: {weekday_names}\n"
+            f"    Sofortige Benachrichtigungen: {'Ja' if meta.immediate_notifications else 'Nein'}\n"
+            f"    Erinnerungsvorlaufzeit: {str(meta.reminder_lead_days) + ' Tage' if meta.reminder_lead_days is not None else 'Keine'}\n"
+        )
         return result
