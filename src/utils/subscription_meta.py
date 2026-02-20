@@ -1,8 +1,11 @@
 from dataclasses import dataclass, asdict
 from datetime import datetime
+import logging
 from pathlib import Path
 import json
 from typing import Dict, List, Optional, Union
+from O365.account import Account
+from src.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
 
 SUBSCRIPTION_META_VALUE_TYPES = Union[int, List[int], Optional[int], bool, str]
 
@@ -48,6 +51,23 @@ class SubscriptionManager:
     def __init__(self, path: str) -> None:
         self.path = path
         self._subscription_metas = self.load_subscriptions(path)
+
+    def push_metas_to_sharepoint(self, account: Account) -> None:
+        logging.info("Pushing subscription metas to SharePoint...")
+        sharepoint = account.sharepoint()
+        site = sharepoint.get_site(SHAREPOINT_SITE_ID)
+        drive = site.get_default_document_library()
+        try:
+            folder = drive.get_item_by_path(SHAREPOINT_FOLDER_PATH)
+        except Exception as e:
+            raise RuntimeError(
+                f"Could not access SharePoint folder at path {SHAREPOINT_FOLDER_PATH}: {e}"
+            )
+        target_file_name = "subscription_metas.json"
+        new_file = folder.upload_file(self.path, target_file_name)
+        logging.info(
+            f"... uploaded subscription metas to SharePoint file {new_file.name} to folder {folder.name}"
+        )
 
     @property
     def subscription_metas(self) -> Dict[str, SubscriptionMeta]:

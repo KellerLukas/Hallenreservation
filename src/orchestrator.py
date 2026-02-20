@@ -48,6 +48,7 @@ class Orchestrator:
     def run(self) -> None:
         self.process_incoming_emails()
         self.send_reminders()
+        self.push_subscription_metas_to_sharepoint()
 
     def process_incoming_emails(self) -> None:
         mailbox = self.account.mailbox(resource=MONITORED_EMAIL_ADDRESS)
@@ -155,6 +156,10 @@ class Orchestrator:
     def prettyprint_subscriptions(self) -> None:
         manager = SubscriptionManager(path=SUBSCRIPTION_META_FILE)
         manager.pretty_print_subscriptions()
+
+    def push_subscription_metas_to_sharepoint(self) -> None:
+        manager = SubscriptionManager(path=SUBSCRIPTION_META_FILE)
+        manager.push_metas_to_sharepoint(account=self.account)
 
     def _is_reservation_email(self, message: Message) -> bool:
         expected_subject_prefix = INCOMING_RESERVATION_PREFIX

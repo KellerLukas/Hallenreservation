@@ -12,7 +12,7 @@ from tempfile import TemporaryDirectory
 from src.email.email_sender import EmailSender
 from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
 from src.config import (
-    SHAREPOINT_FOLDER_PATH,
+    SHAREPOINT_FOLDER_PATH_ORIGINAL,
     SHAREPOINT_FOLDER_PATH_REDACTED,
     SHAREPOINT_SITE_ID,
     SUBSCRIPTION_META_FILE,
@@ -245,7 +245,7 @@ def get_reservations_folder(account: Account, year: int, redacted: bool) -> Fold
     drive = site.get_default_document_library()
 
     base_folder = (
-        SHAREPOINT_FOLDER_PATH_REDACTED if redacted else SHAREPOINT_FOLDER_PATH
+        SHAREPOINT_FOLDER_PATH_REDACTED if redacted else SHAREPOINT_FOLDER_PATH_ORIGINAL
     )
     folder_path = f"{base_folder}/{year_str}"
     try:
