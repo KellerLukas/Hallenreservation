@@ -174,6 +174,6 @@ class SubscriptionManager:
             f"{meta.email}\n"
             f"    Wochentage: {weekday_names}\n"
             f"    Sofortige Benachrichtigungen: {'Ja' if meta.immediate_notifications else 'Nein'}\n"
-            f"    Erinnerungsvorlaufzeit: {str(meta.reminder_lead_days) + ' Tage' if meta.reminder_lead_days is not None else 'Keine'}\n"
+            f"    Erinnerungen: {str(meta.reminder_lead_days) + ' Tage im Voraus' if meta.reminder_lead_days is not None else 'Keine'}\n"
         )
         return result
