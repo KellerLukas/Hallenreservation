@@ -70,8 +70,8 @@ class Orchestrator:
                 _mark_as_read(message)
 
     def process_incoming_reservation_email(self, message: Message) -> None:
-        processor = ReservationEmailProcessor(message=message, account=self.account)
         try:
+            processor = ReservationEmailProcessor(message=message, account=self.account)
             processor.process()
             logging.info("... done, marking as read.")
             _mark_as_read(message)
@@ -89,10 +89,10 @@ class Orchestrator:
                 _mark_as_unread(message)
 
     def process_subscription_update_email(self, message: Message) -> None:
-        processor = SubscriptionUpdateEmailProcessor(
-            message=message, account=self.account
-        )
         try:
+            processor = SubscriptionUpdateEmailProcessor(
+                message=message, account=self.account
+            )
             processor.process()
             logging.info("... done, marking as read.")
             _mark_as_read(message)
@@ -110,16 +110,17 @@ class Orchestrator:
                 _mark_as_unread(message)
 
     def send_reminders(self) -> None:
-        last_reminders_timestamp = self._load_last_processed_reminders_timestamp()
-        now = datetime.now(ZONEINFO)
-        yesterday = (now - timedelta(days=1)).date()
-        today_nine_am = datetime.combine(now.date(), time(9, 0), tzinfo=ZONEINFO)
-
-        if not (last_reminders_timestamp.date() <= yesterday and now >= today_nine_am):
-            return
-
-        logging.info("Processing reminders...")
         try:
+            last_reminders_timestamp = self._load_last_processed_reminders_timestamp()
+            now = datetime.now(ZONEINFO)
+            yesterday = (now - timedelta(days=1)).date()
+            today_nine_am = datetime.combine(now.date(), time(9, 0), tzinfo=ZONEINFO)
+
+            if not (last_reminders_timestamp.date() <= yesterday and now >= today_nine_am):
+                return
+
+            logging.info("Processing reminders...")
+
             manager = SubscriptionManager(path=SUBSCRIPTION_META_FILE)
             targets_per_lead_day_number = (
                 manager.emails_per_lead_day_number_with_reminder_due_today
