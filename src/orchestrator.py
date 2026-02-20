@@ -116,7 +116,9 @@ class Orchestrator:
             yesterday = (now - timedelta(days=1)).date()
             today_nine_am = datetime.combine(now.date(), time(9, 0), tzinfo=ZONEINFO)
 
-            if not (last_reminders_timestamp.date() <= yesterday and now >= today_nine_am):
+            if not (
+                last_reminders_timestamp.date() <= yesterday and now >= today_nine_am
+            ):
                 return
 
             logging.info("Processing reminders...")
@@ -149,6 +151,10 @@ class Orchestrator:
             except EmailSendingError as ese:
                 logging.info("... failed to send message.")
                 logging.info(ese)
+
+    def prettyprint_subscriptions(self) -> None:
+        manager = SubscriptionManager(path=SUBSCRIPTION_META_FILE)
+        manager.pretty_print_subscriptions()
 
     def _is_reservation_email(self, message: Message) -> bool:
         expected_subject_prefix = INCOMING_RESERVATION_PREFIX

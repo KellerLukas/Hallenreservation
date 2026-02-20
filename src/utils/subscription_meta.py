@@ -121,3 +121,10 @@ class SubscriptionManager:
             for meta in self.subscription_metas.values()
             if target_weekday in meta.weekdays and meta.reminder_lead_days == n
         ]
+
+    def pretty_print_subscriptions(self) -> None:
+        for email, meta in self.subscription_metas.items():
+            print(email)
+            print(f"  Weekdays: {meta.weekdays}")
+            print(f"  Immediate Notifications: {meta.immediate_notifications}")
+            print(f"  Reminder Lead Days: {meta.reminder_lead_days}")
