@@ -127,9 +127,7 @@ class FindAttachmentMeta:
         return sensitive_content
 
     def _find_phone_numbers(self, attachment_content: str) -> Set[str]:
-        phone_number_regex = (
-            r"\+\d{1,2}\s??\(?\d{2,3}\)?[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}"
-        )
+        phone_number_regex = r"(?<!\d)(?:(?:\+41|0041)[\s.-]?|0)\d{2}[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}(?!\d)"
         phone_numbers = re.findall(phone_number_regex, attachment_content, re.MULTILINE)
         return set(phone_numbers)
 
