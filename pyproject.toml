@@ -11,6 +11,7 @@ dependencies = [
     "o365>=2.0.38",
 ]
 #to install pymupdf on raspberry pi, you need to run 
+# python3.11 -m ensurepip --upgrade
 # python3.11 -m pip install --only-binary=:all: --extra-index-url https://www.piwheels.org/simple pymupdf
 [dependency-groups]
 dev = [
