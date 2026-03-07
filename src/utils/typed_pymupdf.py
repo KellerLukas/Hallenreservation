@@ -4,7 +4,7 @@ import fitz
 
 
 class _PdfBytes(Protocol):
-    def tobytes(self) -> bytes: ...
+    def tobytes(self, garbage: int, deflate: bool, clean: bool) -> bytes: ...
 
 
 class _PdfInsert(Protocol):
@@ -37,7 +37,7 @@ def _open_empty_pdf() -> fitz.Document:
 
 
 def _pdf_tobytes(pdf_doc: fitz.Document) -> bytes:
-    return cast(_PdfBytes, pdf_doc).tobytes()
+    return cast(_PdfBytes, pdf_doc).tobytes(garbage=4, deflate=True, clean=True)
 
 
 def _insert_pdf(

@@ -141,7 +141,8 @@ class ReservationEmailProcessor(EmailProcessorBase):
                     page.add_redact_annot(
                         inst, fill=(0, 0, 0)
                     )  # RGB (0,0,0) = black bar
-            page.apply_redactions()
+            # images=0 -> don't redact overlapping images, this drastically reduces file-size in some cases.
+            page.apply_redactions(images=0)
         return redacted_doc
 
     def get_attachments(self) -> list[MessageAttachment]:
