@@ -8,12 +8,14 @@ from pydantic import BaseModel
 from src.utils.errors import ClassificationError
 
 DATE_REGEX_STR = r"\b\d{2}\.\d{2}\.\d{4}\b"
+PAGE_NUMBER_REGEX = re.compile(r"Seite (\d+)/(\d+)")
 
 
 class AttachmentMeta(BaseModel):
     clean_filename: str
     date: datetime
     sensitive_content: Set[str] = set()
+    locations: Set[str] = set()
 
 
 class FindAttachmentMeta:
@@ -26,6 +28,9 @@ class FindAttachmentMeta:
             )
         org = self._find_organization(attachment_content, booking_id=booking_id)
         dates = self._find_dates(attachment_content)
+        locations = self._find_booked_locations(
+            attachment_content, booking_id=booking_id
+        )
         sensitive_content = self._find_sensitive_content(attachment_content)
         sensitive_content = self._remove_string_from_sensitive_content(
             sensitive_content, ""
@@ -45,6 +50,7 @@ class FindAttachmentMeta:
                     clean_filename=clean_filename,
                     date=date,
                     sensitive_content=sensitive_content,
+                    locations=locations,
                 )
             )
         return metas
@@ -135,6 +141,23 @@ class FindAttachmentMeta:
         email_regex = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9_.-]+\.[a-zA-Z0-9-._]+"
         email_addresses = re.findall(email_regex, attachment_content)
         return set(email_addresses)
+
+    def _find_booked_locations(
+        self, attachment_content: str, booking_id: str
+    ) -> Set[str]:
+        booked_locations = set()
+        # on pagebreaks the booking ID and page numbers interfere with the detection of the booked locations, so we remove them beforehand
+        attachment_content = attachment_content.replace(
+            booking_id, ""
+        )  # Remove booking ID to avoid false positives
+        attachment_content = re.sub(
+            PAGE_NUMBER_REGEX, "", attachment_content
+        )  # Remove page numbers to avoid false positives
+        attachment_content = re.sub(r"\n+", "\n", attachment_content)
+        subsequences = re.findall(r"\n(.*?)\nAdresse", attachment_content)
+        for subseq in subsequences:
+            booked_locations.add(subseq.strip())
+        return booked_locations
 
 
 def is_none(value: Any) -> bool:
