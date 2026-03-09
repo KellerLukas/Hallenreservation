@@ -13,7 +13,12 @@ template = """
       <ul style="margin:10px 0; padding-left:20px;">
         {dates}
       </ul>
-
+      <p>
+        Sowie folgende Anlagen:
+      </p>
+      <ul style="margin:10px 0; padding-left:20px;">
+        {locations}
+      </ul>
       <p>
         Du erhältst diese Nachricht, weil du den Halleninfo-Service aktiviert hast.
         Du kannst deine Benachrichtigungseinstellungen hier anpassen oder den Service abbestellen:

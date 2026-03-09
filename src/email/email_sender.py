@@ -117,6 +117,7 @@ class EmailSender:
         pdf_doc: fitz.Document,
         filename: str,
         dates: List[datetime],
+        locations: List[str],
         recipients: List[str],
     ) -> None:
         subject = f"{NOTIFICATION_PREFIX} Neue Reservationsbestätigung"
@@ -126,8 +127,13 @@ class EmailSender:
             )
             for date in dates
         )
+        locations_str = "\n".join(
+            bullet_point_list_template.format(item=html.escape(location))
+            for location in locations
+        )
         text = immediate_notification_email_template.format(
             dates=dates_str,
+            locations=locations_str,
             subscription_manage_url=SUBSCRIPTION_MANAGE_URL,
             support_email_address=SUPPORT_EMAIL_ADDRESS,
         )

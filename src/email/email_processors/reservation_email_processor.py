@@ -1,6 +1,5 @@
 import base64
 import os
-import re
 from typing import List, Optional, Set, Tuple
 import fitz
 import tempfile
@@ -10,7 +9,11 @@ from O365.message import Message, MessageAttachment
 from O365.drive import Folder, File
 from tempfile import TemporaryDirectory
 from src.email.email_sender import EmailSender
-from src.utils.find_attachment_meta import AttachmentMeta, FindAttachmentMeta
+from src.utils.find_attachment_meta import (
+    AttachmentMeta,
+    FindAttachmentMeta,
+    PAGE_NUMBER_REGEX,
+)
 from src.config import (
     SHAREPOINT_FOLDER_PATH_ORIGINAL,
     SHAREPOINT_FOLDER_PATH_REDACTED,
@@ -27,8 +30,6 @@ from src.utils.typed_pymupdf import (
     _open_pdf_from_path,
     _pdf_tobytes,
 )
-
-PAGE_NUMBER_REGEX = re.compile(r"Seite (\d+)/(\d+)")
 
 
 class ReservationEmailProcessor(EmailProcessorBase):
@@ -84,6 +85,10 @@ class ReservationEmailProcessor(EmailProcessorBase):
         pdf_doc_redacted = self.redact_pdf(
             pdf_doc=pdf_doc, strings_to_redact=sensitive_content
         )
+        strings_to_highlight = metas[0].locations
+        pdf_doc_redacted = self.highlight_strings_in_pdf(
+            pdf_doc=pdf_doc_redacted, strings_to_highlight=strings_to_highlight
+        )
         self.upload_to_sharepoint(pdf_doc=pdf_doc_redacted, metas=metas, redacted=True)
         weekdays = {meta.date.weekday() for meta in metas}
         emails_to_notify = set()
@@ -103,8 +108,24 @@ class ReservationEmailProcessor(EmailProcessorBase):
             pdf_doc=pdf_doc_redacted,
             filename=attachment.name,
             dates=[meta.date for meta in metas],
+            locations=self._sort_and_preprocess_booked_locations(metas[0].locations),
             recipients=list(emails_to_notify),
         )
+
+    def _sort_and_preprocess_booked_locations(self, locations: Set[str]) -> List[str]:
+        preprocessed_locations = {
+            self._preprocess_booked_location(loc) for loc in locations
+        }
+        sorted_locations = sorted(preprocessed_locations)
+        return sorted_locations
+
+    def _preprocess_booked_location(self, location: str) -> str:
+        location = location.strip()
+        location_substring_mapping = {"Mehrzweckhalle:": "MZH", " / Dusche": ""}
+        for substring, replacement in location_substring_mapping.items():
+            if substring in location:
+                location = location.replace(substring, replacement)
+        return location
 
     def read_pdf(self, doc: fitz.Document) -> str:
         pdf_text = ""
@@ -144,6 +165,18 @@ class ReservationEmailProcessor(EmailProcessorBase):
             # images=0 -> don't redact overlapping images, this drastically reduces file-size in some cases.
             page.apply_redactions(images=0)
         return redacted_doc
+
+    def highlight_strings_in_pdf(
+        self, pdf_doc: fitz.Document, strings_to_highlight: Set[str]
+    ) -> fitz.Document:
+        for page in pdf_doc:  # type: ignore[attr-defined]
+            for str_to_highlight in strings_to_highlight:
+                text_instances = page.search_for(str_to_highlight)
+                for inst in text_instances:
+                    highlight = page.add_highlight_annot(inst)
+                    highlight.set_colors(stroke=(1, 1, 0))  # RGB (1,1,0) = yellow
+                    highlight.update()
+        return pdf_doc
 
     def get_attachments(self) -> list[MessageAttachment]:
         if not self.message.has_attachments:
