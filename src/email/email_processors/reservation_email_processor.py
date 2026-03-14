@@ -14,8 +14,13 @@ from src.utils.find_attachment_meta import (
     FindAttachmentMeta,
     PAGE_NUMBER_REGEX,
 )
-from src.config import (ORIGINAL_FOLDER, REDACTED_FOLDER, SHAREPOINT_FOLDER_PATH,
-    SHAREPOINT_SITE_ID, SUBSCRIPTION_META_FILE)
+from src.config import (
+    ORIGINAL_FOLDER,
+    REDACTED_FOLDER,
+    SHAREPOINT_FOLDER_PATH,
+    SHAREPOINT_SITE_ID,
+    SUBSCRIPTION_META_FILE,
+)
 from src.email.email_processors.email_processor_base import EmailProcessorBase
 from src.utils.subscription_meta import SubscriptionManager
 from src.utils.typed_o365 import _get_items
@@ -26,7 +31,7 @@ from src.utils.typed_pymupdf import (
     _open_pdf_from_path,
     _pdf_tobytes,
 )
-from src.utils.is_test_mode import is_test_mode, TEST_FILE_PREFIX
+from src.utils.is_test_mode import is_test_mode
 
 
 class ReservationEmailProcessor(EmailProcessorBase):
