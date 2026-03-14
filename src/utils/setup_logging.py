@@ -3,7 +3,7 @@ import logging
 from logging.handlers import WatchedFileHandler
 
 from src.config import LOG_FILE
-from src.utils.is_test_mode import is_test_mode
+from src.utils.is_test_mode import TEST_FILE_PREFIX, is_test_mode
 
 
 class SafeWatchedFileHandler(WatchedFileHandler):
@@ -34,6 +34,9 @@ def setup_logging_to_file() -> None:
         )
 
     # Create and add the SafeWatchedFileHandler
-    handler = SafeWatchedFileHandler(LOG_FILE)
+    log_file = LOG_FILE
+    if is_test_mode():
+        log_file = TEST_FILE_PREFIX + log_file
+    handler = SafeWatchedFileHandler(log_file)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
