@@ -283,7 +283,7 @@ def get_reservations_folder(account: Account, year: int, redacted: bool) -> Fold
         SHAREPOINT_FOLDER_PATH_REDACTED if redacted else SHAREPOINT_FOLDER_PATH_ORIGINAL
     )
     if is_test_mode():
-        base_folder = TEST_FILE_PREFIX + base_folder
+        base_folder = f"{base_folder}/TEST"
     folder_path = f"{base_folder}/{year_str}"
     try:
         parent = drive.get_item_by_path(base_folder)
