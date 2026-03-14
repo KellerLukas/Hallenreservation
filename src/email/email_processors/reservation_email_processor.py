@@ -14,12 +14,8 @@ from src.utils.find_attachment_meta import (
     FindAttachmentMeta,
     PAGE_NUMBER_REGEX,
 )
-from src.config import (
-    SHAREPOINT_FOLDER_PATH_ORIGINAL,
-    SHAREPOINT_FOLDER_PATH_REDACTED,
-    SHAREPOINT_SITE_ID,
-    SUBSCRIPTION_META_FILE,
-)
+from src.config import (ORIGINAL_FOLDER, REDACTED_FOLDER, SHAREPOINT_FOLDER_PATH,
+    SHAREPOINT_SITE_ID, SUBSCRIPTION_META_FILE)
 from src.email.email_processors.email_processor_base import EmailProcessorBase
 from src.utils.subscription_meta import SubscriptionManager
 from src.utils.typed_o365 import _get_items
@@ -279,11 +275,11 @@ def get_reservations_folder(account: Account, year: int, redacted: bool) -> Fold
     site = sharepoint.get_site(SHAREPOINT_SITE_ID)
     drive = site.get_default_document_library()
 
-    base_folder = (
-        SHAREPOINT_FOLDER_PATH_REDACTED if redacted else SHAREPOINT_FOLDER_PATH_ORIGINAL
-    )
+    base_path = SHAREPOINT_FOLDER_PATH
     if is_test_mode():
-        base_folder = f"{base_folder}/TEST"
+        base_path = f"{base_path}/TEST"
+    base_folder = f"{base_path}/{REDACTED_FOLDER if redacted else ORIGINAL_FOLDER}"
+
     folder_path = f"{base_folder}/{year_str}"
     try:
         parent = drive.get_item_by_path(base_folder)

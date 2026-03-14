@@ -70,11 +70,14 @@ class SubscriptionManager:
         sharepoint = account.sharepoint()
         site = sharepoint.get_site(SHAREPOINT_SITE_ID)
         drive = site.get_default_document_library()
+        folder_path = SHAREPOINT_FOLDER_PATH
+        if is_test_mode():
+            folder_path = f"{folder_path}/TEST"
         try:
-            folder = drive.get_item_by_path(SHAREPOINT_FOLDER_PATH)
+            folder = drive.get_item_by_path(folder_path)
         except Exception as e:
             raise RuntimeError(
-                f"Could not access SharePoint folder at path {SHAREPOINT_FOLDER_PATH}: {e}"
+                f"Could not access SharePoint folder at path {folder_path}: {e}"
             )
         target_file_name = "subscription_metas.txt"
         if is_test_mode():
