@@ -3,6 +3,7 @@ import logging
 from logging.handlers import WatchedFileHandler
 
 from src.config import LOG_FILE
+from src.utils.is_test_mode import TEST_FILE_PREFIX, is_test_mode
 
 
 class SafeWatchedFileHandler(WatchedFileHandler):
@@ -21,13 +22,21 @@ def setup_logging_to_file() -> None:
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    # Create a formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    if is_test_mode():
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - TESTMODE - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    else:
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
 
     # Create and add the SafeWatchedFileHandler
-    handler = SafeWatchedFileHandler(LOG_FILE)
+    log_file = LOG_FILE
+    if is_test_mode():
+        log_file = TEST_FILE_PREFIX + log_file
+    handler = SafeWatchedFileHandler(log_file)
     handler.setFormatter(formatter)
     logger.addHandler(handler)

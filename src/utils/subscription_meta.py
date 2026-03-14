@@ -7,6 +7,7 @@ import tempfile
 from typing import Dict, List, Optional, Union
 from O365.account import Account
 from src.config import SHAREPOINT_FOLDER_PATH, SHAREPOINT_SITE_ID
+from src.utils.is_test_mode import is_test_mode, TEST_FILE_PREFIX
 
 SUBSCRIPTION_META_VALUE_TYPES = Union[int, List[int], Optional[int], bool, str]
 WEEKDAY_NAMES_DE = [
@@ -60,20 +61,27 @@ class SubscriptionMeta:
 class SubscriptionManager:
     def __init__(self, path: str) -> None:
         self.path = path
-        self._subscription_metas = self.load_subscriptions(path)
+        if is_test_mode():
+            self.path = TEST_FILE_PREFIX + self.path
+        self._subscription_metas = self.load_subscriptions(self.path)
 
     def push_metas_to_sharepoint(self, account: Account) -> None:
         logging.info("Pushing subscription metas to SharePoint...")
         sharepoint = account.sharepoint()
         site = sharepoint.get_site(SHAREPOINT_SITE_ID)
         drive = site.get_default_document_library()
+        folder_path = SHAREPOINT_FOLDER_PATH
+        if is_test_mode():
+            folder_path = f"{folder_path}/TEST"
         try:
-            folder = drive.get_item_by_path(SHAREPOINT_FOLDER_PATH)
+            folder = drive.get_item_by_path(folder_path)
         except Exception as e:
             raise RuntimeError(
-                f"Could not access SharePoint folder at path {SHAREPOINT_FOLDER_PATH}: {e}"
+                f"Could not access SharePoint folder at path {folder_path}: {e}"
             )
         target_file_name = "subscription_metas.txt"
+        if is_test_mode():
+            target_file_name = TEST_FILE_PREFIX + target_file_name
         pretty_content = self.get_subscription_meta_list_as_pretty_string()
         with tempfile.TemporaryDirectory() as temp_dir:
             upload_path = Path(temp_dir) / target_file_name
