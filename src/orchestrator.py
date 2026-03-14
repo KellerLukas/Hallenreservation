@@ -7,6 +7,7 @@ from O365.message import Message
 from src.utils.credentials import get_o365_credentials_from_env
 from src.email.email_sender import EmailSender, EmailSendingError
 from src.utils.fixed_o365_account import FixedAccount
+from src.utils.is_test_mode import TEST_FILE_PREFIX, is_test_mode
 from src.utils.typed_o365 import _mark_as_read, _mark_as_unread
 from src.email.email_processors.reservation_email_processor import (
     ReservationEmailProcessor,
@@ -38,6 +39,8 @@ from src.email.email_processors.subscription_update_email_processor import (
 locale.setlocale(locale.LC_TIME, "de_CH.UTF-8")
 ZONEINFO = ZoneInfo("Europe/Zurich")
 TIMESTAMP_FILE = "last_reminder_run.txt"
+if is_test_mode():
+    TIMESTAMP_FILE = TEST_FILE_PREFIX + TIMESTAMP_FILE
 
 
 class Orchestrator:
